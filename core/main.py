@@ -1211,6 +1211,9 @@ async def start_model_download(
         env = _runtime_env(runtime)
         env["POTATO_MODEL_PATH"] = str(target_path)
         env["POTATO_MODEL_URL"] = source_url
+        hf_token = str(model.get("hf_token") or "").strip()
+        if hf_token:
+            env["POTATO_HF_TOKEN"] = hf_token
 
         async def _worker() -> int:
             logger.info("Starting model download (%s, model=%s)", trigger, selected_model_id)

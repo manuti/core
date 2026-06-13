@@ -113,9 +113,20 @@ async def register_model_endpoint(
     source_url = str(payload.get("source_url") or "").strip()
     alias_raw = payload.get("alias")
     alias = str(alias_raw).strip() if isinstance(alias_raw, str) and alias_raw.strip() else None
+    hf_token = str(payload.get("hf_token") or "").strip() or None
     ok, reason, model = register_model_url(runtime_cfg, source_url=source_url, alias=alias)
     if not ok:
         return JSONResponse(status_code=400, content={"ok": False, "reason": reason})
+    if hf_token and isinstance(model, dict):
+        model_id = str(model.get("id") or "")
+        if model_id:
+            state = _main.ensure_models_state(runtime_cfg)
+            for item in state.get("models", []):
+                if isinstance(item, dict) and str(item.get("id") or "") == model_id:
+                    item["hf_token"] = hf_token
+                    break
+            _main.save_models_state(runtime_cfg, state)
+            model = dict(model)
     response_payload: dict[str, Any] = {"ok": True, "reason": reason, "model": model}
     if isinstance(model, dict):
         model_filename = str(model.get("filename") or "")

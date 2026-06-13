@@ -10,6 +10,11 @@ mkdir -p "$(dirname "${MODEL_PATH}")" "$(dirname "${STATE_PATH}")"
 TMP_PATH="${MODEL_PATH}.part"
 CURL_ERR_PATH="${STATE_PATH}.curl.err"
 
+HF_AUTH=()
+if [ -n "${POTATO_HF_TOKEN:-}" ]; then
+  HF_AUTH=(-H "Authorization: Bearer ${POTATO_HF_TOKEN}")
+fi
+
 filesize() {
   local path="$1"
   if [ -f "$path" ]; then
@@ -58,7 +63,7 @@ if [ -f "${MODEL_PATH}" ] && [ "$(filesize "${MODEL_PATH}")" -gt 0 ]; then
   exit 0
 fi
 
-total_bytes="$(curl -fsSLI "${MODEL_URL}" | tr -d '\r' | awk -F': ' 'tolower($1)=="content-length"{print $2}' | tail -n1)"
+total_bytes="$(curl -fsSLI "${HF_AUTH[@]}" "${MODEL_URL}" | tr -d '\r' | awk -F': ' 'tolower($1)=="content-length"{print $2}' | tail -n1)"
 if [ -z "${total_bytes}" ]; then
   total_bytes=0
 fi
@@ -85,7 +90,7 @@ fi
 
 start_ts="$(date +%s)"
 rm -f "${CURL_ERR_PATH}"
-ionice -c3 nice -n 19 curl -L -C - --fail --output "${TMP_PATH}" "${MODEL_URL}" 2>"${CURL_ERR_PATH}" &
+ionice -c3 nice -n 19 curl -L -C - --fail "${HF_AUTH[@]}" --output "${TMP_PATH}" "${MODEL_URL}" 2>"${CURL_ERR_PATH}" &
 download_pid=$!
 
 while kill -0 "${download_pid}" 2>/dev/null; do
