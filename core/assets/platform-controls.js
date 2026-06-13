@@ -268,10 +268,12 @@ export async function registerModelFromUrl() {
     setModelUrlStatus("Enter an HTTPS model URL ending with .gguf.");
     return;
   }
+  const hfTokenInput = document.getElementById("hfTokenInput");
+  const hfToken = String(hfTokenInput?.value || "").trim() || null;
   appState.modelActionInFlight = true;
   setModelUrlStatus("Adding model URL...");
   try {
-    const result = await modelApi.registerModel(sourceUrl);
+    const result = await modelApi.registerModel(sourceUrl, hfToken);
     if (!result.ok) {
       setModelUrlStatus(result.reason
         ? formatModelUrlStatus(result.reason, result.status)

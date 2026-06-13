@@ -20,6 +20,7 @@ try:
         set_download_countdown_enabled,
         update_model_settings,
         register_model_url,
+        save_hf_token,
         _model_file_path,
         _slugify_id,
         _unique_filename,
@@ -39,6 +40,7 @@ except ModuleNotFoundError:
         set_download_countdown_enabled,
         update_model_settings,
         register_model_url,
+        save_hf_token,
         _model_file_path,
         _slugify_id,
         _unique_filename,
@@ -113,9 +115,14 @@ async def register_model_endpoint(
     source_url = str(payload.get("source_url") or "").strip()
     alias_raw = payload.get("alias")
     alias = str(alias_raw).strip() if isinstance(alias_raw, str) and alias_raw.strip() else None
+    hf_token = str(payload.get("hf_token") or "").strip() or None
     ok, reason, model = register_model_url(runtime_cfg, source_url=source_url, alias=alias)
     if not ok:
         return JSONResponse(status_code=400, content={"ok": False, "reason": reason})
+    if hf_token and isinstance(model, dict):
+        model_id = str(model.get("id") or "")
+        if model_id:
+            save_hf_token(runtime_cfg, model_id, hf_token)
     response_payload: dict[str, Any] = {"ok": True, "reason": reason, "model": model}
     if isinstance(model, dict):
         model_filename = str(model.get("filename") or "")
@@ -290,9 +297,9 @@ async def delete_model_endpoint(
     cancelled_download = False
 
     try:
-        from core.model_state import delete_model, resolve_active_model
+        from core.model_state import delete_model, resolve_active_model, delete_hf_token
     except ModuleNotFoundError:
-        from model_state import delete_model, resolve_active_model  # type: ignore[no-redef]
+        from model_state import delete_model, resolve_active_model, delete_hf_token  # type: ignore[no-redef]
 
     async with request.app.state.download_lock:
         models_state = _main.ensure_models_state(runtime_cfg)
@@ -319,6 +326,8 @@ async def delete_model_endpoint(
                     },
                 )
         deleted, reason, deleted_file, freed_bytes, deleted_active = delete_model(runtime_cfg, model_id=model_id)
+    if deleted:
+        delete_hf_token(runtime_cfg, model_id)
     restarted = False
     restart_reason = "not_required"
     if deleted and deleted_active:

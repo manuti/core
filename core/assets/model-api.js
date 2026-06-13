@@ -7,9 +7,11 @@ import { postJson } from "./utils.js";
 // Pure async functions for model CRUD and settings API calls.
 // Returns normalized { ok, ...data, error } — no DOM, no state mutation.
 
-export async function registerModel(sourceUrl) {
+export async function registerModel(sourceUrl, hfToken) {
   try {
-    const { res, body } = await postJson("/internal/models/register", { source_url: sourceUrl });
+    const payload = { source_url: sourceUrl };
+    if (hfToken) payload.hf_token = hfToken;
+    const { res, body } = await postJson("/internal/models/register", payload);
     if (!res.ok) {
       return { ok: false, reason: body?.reason || null, status: res.status };
     }
