@@ -55,11 +55,31 @@ Potato OS is an early release meant for testing and tinkering, not production us
 - Vision — attach a photo and ask about it
 - Multi-chat sessions (persisted in your browser)
 - Model management — download by URL, upload, delete, switch active model
-- System monitoring — CPU, GPU, temperature, memory, storage, power draw
+- HuggingFace token support — download gated/private models with an `hf_*` token (stored in a 0600 file, never in logs or API responses)
+- System monitoring — CPU, GPU, temperature, memory (available, not just free), storage, power draw
 - Dual inference runtime — ik_llama (Pi 5 default) and upstream llama.cpp (Pi 4 default, Pi 5 fallback)
 - OpenAI-compatible API — `GET /v1/models` and `POST /v1/chat/completions`
+- `potatoctl` management CLI — health check, logs, status, restart
 
 Updates are reflash-only for now — there is no OTA or in-place upgrade path yet.
+
+## Deploying changes without reflashing
+
+If you already have a Potato OS installation you can push updates over SSH:
+
+```bash
+# From the parent directory of your local clone (e.g. ~/apps/potatoos/)
+rsync -av --no-group core/core/ manuti@potato.local:/tmp/core_update/
+rsync -av --no-group core/bin/  manuti@potato.local:/tmp/bin_update/
+rsync -av --no-group core/apps/ manuti@potato.local:/tmp/apps_update/
+
+# On the Pi (SSH in)
+sudo cp -r /tmp/core_update/* /opt/potato/core/
+sudo cp -r /tmp/bin_update/*  /opt/potato/bin/
+sudo cp -r /tmp/apps_update/* /opt/potato/apps/
+sudo chown -R potato:potato /opt/potato/
+sudo systemctl restart potato
+```
 
 ## Recovery and rollback
 
@@ -94,7 +114,7 @@ potatoctl restart         # restart the potato service
 ### API endpoints
 
 ```bash
-GET  http://potato.local/v1/models            # list available models
+GET  http://potato.local/v1/models            # list available models (OpenAI-compatible)
 POST http://potato.local/v1/chat/completions  # chat completions (streaming supported)
 GET  http://potato.local/status               # full system status
 ```
