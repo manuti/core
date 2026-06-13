@@ -494,6 +494,8 @@ import { saveActiveSession } from "./session-manager.js";
 
     export async function sendChat() {
       if (appState.requestInFlight) return;
+      const state = String(appState.latestStatus?.state || "").toUpperCase();
+      if (state !== "READY") return;
       if (appState.imageCancelRecoveryTimer) {
         window.clearTimeout(appState.imageCancelRecoveryTimer);
         appState.imageCancelRecoveryTimer = null;
