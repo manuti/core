@@ -114,7 +114,7 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
       const storagePercent = formatPercent(systemPayload?.storage_percent, 0);
       const throttlingNow = systemPayload?.throttling?.any_current === true ? "Yes" : "No";
       const memTotalCompact = Number(systemPayload?.memory_total_bytes);
-      const memFreeCompact = Number(systemPayload?.memory_free_bytes);
+      const memFreeCompact = Number(systemPayload?.memory_available_bytes);
       const ramUsedCompact = Number.isFinite(memTotalCompact) && Number.isFinite(memFreeCompact) ? memTotalCompact - memFreeCompact : 0;
       const ramPctCompact = Number.isFinite(ramUsedCompact) && Number.isFinite(memTotalCompact) && memTotalCompact > 0
         ? Math.round(ramUsedCompact / memTotalCompact * 100)
@@ -130,7 +130,7 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
       applyRuntimeMetricSeverity(cpuClockDetail, percentFromRatio(systemPayload?.cpu_clock_arm_hz, _cpuMaxHz(systemPayload)));
 
       const memTotalBytes = Number(systemPayload?.memory_total_bytes);
-      const memFreeBytes = Number(systemPayload?.memory_free_bytes);
+      const memFreeBytes = Number(systemPayload?.memory_available_bytes);
       const memTotal = formatBytes(systemPayload?.memory_total_bytes);
       const ramUsedBytes = Number.isFinite(memTotalBytes) && Number.isFinite(memFreeBytes) ? memTotalBytes - memFreeBytes : Number(systemPayload?.memory_used_bytes);
       const ramUsedPct = Number.isFinite(ramUsedBytes) && Number.isFinite(memTotalBytes) && memTotalBytes > 0
