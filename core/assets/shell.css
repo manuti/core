@@ -1752,6 +1752,11 @@
       font-weight: 700;
     }
 
+    .model-size-chip {
+      font-weight: 500;
+      opacity: 0.75;
+    }
+
     .model-status-pill {
       border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
       border-radius: 999px;

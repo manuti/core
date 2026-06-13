@@ -718,6 +718,13 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
           chip.textContent = String(bit);
           meta.appendChild(chip);
         }
+        const sizeBytes = Number(model?.storage?.size_bytes || 0);
+        if (sizeBytes > 0) {
+          const sizeChip = document.createElement("span");
+          sizeChip.className = "model-mini-chip model-size-chip";
+          sizeChip.textContent = formatBytes(sizeBytes);
+          meta.appendChild(sizeChip);
+        }
 
         const actions = document.createElement("div");
         actions.className = "model-row-actions";
