@@ -414,9 +414,11 @@ def _pre_locked():
     return fake
 
 
-def test_concurrent_completion_returns_429(client, monkeypatch):
+def test_full_queue_returns_429(client, monkeypatch):
     monkeypatch.setattr("core.main.check_llama_health", _healthy_true)
-    client.app.state.inference_lock = _pre_locked()
+    # Simulate a saturated queue: depth already at the configured maximum.
+    client.app.state.inference_max_queue = 3
+    client.app.state.inference_queue_depth = 3
 
     response = client.post(
         "/v1/chat/completions",
@@ -431,7 +433,8 @@ def test_concurrent_completion_returns_429(client, monkeypatch):
 
 def test_429_response_body_format(client, monkeypatch):
     monkeypatch.setattr("core.main.check_llama_health", _healthy_true)
-    client.app.state.inference_lock = _pre_locked()
+    client.app.state.inference_max_queue = 3
+    client.app.state.inference_queue_depth = 3
 
     response = client.post(
         "/v1/chat/completions",
@@ -465,6 +468,7 @@ def test_lock_released_after_non_streaming_completion(client, runtime, monkeypat
 
     assert response.status_code == 200
     assert not client.app.state.inference_lock.locked()
+    assert client.app.state.inference_queue_depth == 0
 
 
 def test_lock_released_after_streaming_completion(client, runtime, monkeypatch):

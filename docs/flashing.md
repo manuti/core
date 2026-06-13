@@ -5,10 +5,18 @@ Step-by-step guide for flashing Potato OS to a microSD card using Raspberry Pi I
 ## What you need
 
 - Raspberry Pi 5 (8 GB or 16 GB)
+- **Active cooling** — an Active Cooler or fan HAT is strongly recommended (see note below)
 - microSD card (16 GB minimum)
 - Power supply (20W USB-C minimum, 27W recommended if using a USB SSD)
 - Ethernet or Wi-Fi connection (for first-boot model download)
 - A computer with [Raspberry Pi Imager](https://www.raspberrypi.com/software/) installed
+
+> **⚠️ Active cooling required for sustained inference.** Running an LLM keeps all
+> four cores at high load for long stretches. Without active cooling the Pi 5
+> reaches its soft temperature limit (~85 °C) and throttles the CPU from
+> 2400 MHz, slowing token generation. The official Raspberry Pi 5 Active Cooler
+> (or an equivalent fan HAT) keeps the board below the throttling threshold.
+> A passive heatsink alone is not sufficient for continuous use.
 
 ## Flash with Raspberry Pi Imager
 

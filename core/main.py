@@ -1956,6 +1956,9 @@ def create_app(runtime: RuntimeConfig | None = None, enable_orchestrator: bool |
     app.state.update_task = None
     app.state.update_lock = asyncio.Lock()
     app.state.inference_lock = asyncio.Lock()
+    # Bounded inference queue: in-flight request + waiters allowed on the lock.
+    app.state.inference_queue_depth = 0
+    app.state.inference_max_queue = int(os.environ.get("POTATO_INFERENCE_MAX_QUEUE", "3"))
     app.state.terminal_sessions: dict = {}
     import secrets as _secrets
     app.state.terminal_token: str = _secrets.token_urlsafe(32)

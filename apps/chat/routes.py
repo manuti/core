@@ -64,22 +64,45 @@ async def chat_completions(
     chat_repository: ChatRepositoryManager = Depends(get_chat_repository),
 ) -> Response:
     lock = request.app.state.inference_lock
-    if lock.locked():
+    # Bounded queue: allow a small number of requests to wait their turn on the
+    # lock instead of rejecting them outright.  `inference_queue_depth` counts
+    # the in-flight request plus everyone waiting on the lock; once it reaches
+    # `inference_max_queue` we shed load with a 429.  All reads/writes of the
+    # counter happen without an intervening await, so no scheduling window lets
+    # a request slip past the capacity check (single-threaded event loop).
+    max_queue = getattr(request.app.state, "inference_max_queue", 3)
+    current_depth = getattr(request.app.state, "inference_queue_depth", 0)
+    if current_depth >= max_queue:
         return JSONResponse(
             status_code=429,
             content={
                 "error": {
-                    "message": "A completion is already in progress. Try again shortly.",
+                    "message": "Inference queue is full. Try again shortly.",
                     "type": "concurrent_request",
                     "code": 429,
                 }
             },
         )
 
-    # Acquire immediately after locked() check — no awaits in between so no
-    # scheduling window for a second request to slip past.  asyncio.Lock.acquire()
-    # is synchronous (no yield) when the lock is free.
-    await lock.acquire()
+    request.app.state.inference_queue_depth = current_depth + 1
+    depth_released = False
+
+    def _release_slot():
+        nonlocal depth_released
+        if not depth_released:
+            depth_released = True
+            request.app.state.inference_queue_depth = max(
+                0, getattr(request.app.state, "inference_queue_depth", 1) - 1
+            )
+
+    try:
+        # Queue behind any in-flight completion.  asyncio.Lock preserves FIFO
+        # order, so waiters are served in arrival order.
+        await lock.acquire()
+    except BaseException:
+        _release_slot()
+        raise
+
     released = False
     try:
         _get_status_download_context = request.app.state.get_status_download_context
@@ -140,6 +163,7 @@ async def chat_completions(
                         yield chunk
                 finally:
                     lock.release()
+                    _release_slot()
 
             released = True
             return StreamingResponse(
@@ -157,3 +181,4 @@ async def chat_completions(
     finally:
         if not released:
             lock.release()
+            _release_slot()
