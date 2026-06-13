@@ -7,6 +7,10 @@ install -d -m 0755 "${ROOTFS_DIR}/opt/potato" "${ROOTFS_DIR}/opt/potato"/{app,bi
 chmod 0755 "${ROOTFS_DIR}/opt" "${ROOTFS_DIR}/opt/potato" "${ROOTFS_DIR}/opt/potato"/{app,bin,models,state,config,llama,nginx,systemd}
 
 chmod +x "${ROOTFS_DIR}"/opt/potato/bin/*.sh
+chmod +x "${ROOTFS_DIR}/opt/potato/bin/potatoctl"
+# Expose the management CLI on PATH (/usr/local/bin) so `potatoctl` works out of
+# the box. Runtime-valid absolute target, not a pi-gen build path.
+ln -sf /opt/potato/bin/potatoctl "${ROOTFS_DIR}/usr/local/bin/potatoctl"
 
 install -m 0644 "${ROOTFS_DIR}/opt/potato/systemd/potato.service" "${ROOTFS_DIR}/etc/systemd/system/potato.service"
 install -m 0644 "${ROOTFS_DIR}/opt/potato/systemd/potato-firstboot.service" "${ROOTFS_DIR}/etc/systemd/system/potato-firstboot.service"

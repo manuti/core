@@ -221,6 +221,10 @@ fi
 run_sudo install -m 0644 "${REPO_ROOT}/requirements.txt" "${TARGET_ROOT}/core/requirements.txt"
 
 run_sudo chmod +x "${TARGET_ROOT}"/bin/*.sh
+run_sudo chmod +x "${TARGET_ROOT}/bin/potatoctl"
+# Expose the management CLI on PATH so `potatoctl` works out of the box for any
+# user (/usr/local/bin is on the default PATH), no manual ~/.bashrc edits.
+run_sudo ln -sf "${TARGET_ROOT}/bin/potatoctl" /usr/local/bin/potatoctl
 run_sudo install -m 0644 "${REPO_ROOT}/systemd/potato.service" "${SERVICE_DIR}/potato.service"
 run_sudo install -m 0644 "${REPO_ROOT}/systemd/potato-firstboot.service" "${SERVICE_DIR}/potato-firstboot.service"
 run_sudo install -m 0644 "${REPO_ROOT}/systemd/potato-runtime-reset.service" "${SERVICE_DIR}/potato-runtime-reset.service"

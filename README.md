@@ -85,11 +85,11 @@ sudo chown -R potato:potato /opt/potato/
 sudo systemctl restart potato
 ```
 
-To make `potatoctl` available from anywhere, add `/opt/potato/bin` to your PATH on the Pi:
-
-```bash
-echo 'export PATH="/opt/potato/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
-```
+`potatoctl` is available on your PATH out of the box — the installer and image
+symlink it into `/usr/local/bin`, so `potatoctl doctor` works from anywhere on
+the Pi with no extra setup. (If you deployed an older build, you can still add
+`/opt/potato/bin` to your PATH manually:
+`echo 'export PATH="/opt/potato/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc`.)
 
 ## Recovery and rollback
 

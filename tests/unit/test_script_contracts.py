@@ -157,6 +157,26 @@ def test_install_script_uses_reference_llama_bundle_sync():
     assert "chmod 0755 /opt" in script
 
 
+def test_install_script_exposes_potatoctl_on_path():
+    """potatoctl must be runnable out of the box: executable + symlinked onto
+    the default PATH via /usr/local/bin."""
+    script = Path("bin/install_dev.sh").read_text(encoding="utf-8")
+
+    assert 'run_sudo chmod +x "${TARGET_ROOT}/bin/potatoctl"' in script
+    assert 'run_sudo ln -sf "${TARGET_ROOT}/bin/potatoctl" /usr/local/bin/potatoctl' in script
+
+    uninstall = Path("bin/uninstall_dev.sh").read_text(encoding="utf-8")
+    assert "rm -f /usr/local/bin/potatoctl" in uninstall
+
+
+def test_image_exposes_potatoctl_on_path():
+    """The image build must symlink potatoctl onto PATH in the rootfs too."""
+    run_script = Path("image/stage-potato/00-potato/00-run.sh").read_text(encoding="utf-8")
+
+    assert 'chmod +x "${ROOTFS_DIR}/opt/potato/bin/potatoctl"' in run_script
+    assert 'ln -sf /opt/potato/bin/potatoctl "${ROOTFS_DIR}/usr/local/bin/potatoctl"' in run_script
+
+
 def test_ensure_model_validates_download_size_before_finalizing():
     script = Path("bin/ensure_model.sh").read_text(encoding="utf-8")
 
