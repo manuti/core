@@ -57,6 +57,7 @@ Potato OS is an early release meant for testing and tinkering, not production us
 - Model management — download by URL, upload, delete, switch active model
 - System monitoring — CPU, GPU, temperature, memory, storage, power draw
 - Dual inference runtime — ik_llama (Pi 5 default) and upstream llama.cpp (Pi 4 default, Pi 5 fallback)
+- OpenAI-compatible API — `GET /v1/models` and `POST /v1/chat/completions`
 
 Updates are reflash-only for now — there is no OTA or in-place upgrade path yet.
 
@@ -66,6 +67,37 @@ Need to back out or recover from a failed setup? See [docs/recovery.md](docs/rec
 
 - restoring a previous Raspberry Pi OS or other system image
 - reflashing to a newer Potato OS image
+
+---
+
+## Quick reference
+
+### Dev commands
+
+```bash
+make dev        # start local dev server (no inference runtime needed)
+make test       # run all tests (unit + UI)
+make test-unit  # pytest only
+make test-ui    # Playwright only
+make image      # build SD card image
+```
+
+### potatoctl (on the Pi)
+
+```bash
+potatoctl doctor          # health check — service, API, model, version
+potatoctl logs api        # stream service logs (also: llm, model, all)
+potatoctl status          # full JSON status from the API
+potatoctl restart         # restart the potato service
+```
+
+### API endpoints
+
+```bash
+GET  http://potato.local/v1/models            # list available models
+POST http://potato.local/v1/chat/completions  # chat completions (streaming supported)
+GET  http://potato.local/status               # full system status
+```
 
 ---
 
@@ -80,11 +112,23 @@ uv sync
 POTATO_ENABLE_ORCHESTRATOR=0 uv run uvicorn app.main:app --host 0.0.0.0 --port 1983
 ```
 
+Or with Make:
+
+```bash
+make dev
+```
+
 ### Tests
 
 ```bash
 uv run python -m pytest tests/unit tests/api -q -n auto
 npx playwright test --reporter=dot --timeout=15000 --workers=75%
+```
+
+Or with Make:
+
+```bash
+make test
 ```
 
 ### Building llama runtimes
