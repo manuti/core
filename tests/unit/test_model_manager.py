@@ -283,3 +283,21 @@ def test_default_model_for_unknown_returns_2b():
     assert filename == MODEL_FILENAME
     assert url == MODEL_URL
 
+
+
+# ---------------------------------------------------------------------------
+# /v1/models endpoint
+# ---------------------------------------------------------------------------
+
+
+def test_v1_models_returns_openai_compatible_list(client):
+    resp = client.get("/v1/models")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["object"] == "list"
+    assert isinstance(body["data"], list)
+    assert any(m["id"] == "local" for m in body["data"])
+    for m in body["data"]:
+        assert "id" in m
+        assert m["object"] == "model"
+        assert "owned_by" in m
