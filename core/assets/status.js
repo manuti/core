@@ -125,7 +125,7 @@ import { formatBytes, formatCountdownSeconds } from "./utils.js";
       } else if (!countdownEnabled) {
         hint.textContent = "Auto-download is paused. Start manually or re-enable it in settings.";
       } else if (Number.isFinite(autoStartRemaining) && autoStartRemaining > 0) {
-        hint.textContent = `Auto-download starts in ${formatCountdownSeconds(autoStartRemaining)} if idle.`;
+        hint.textContent = `Auto-download starts in ${formatCountdownSeconds(autoStartRemaining)} if idle. Waiting to confirm the Pi isn't busy before starting.`;
       } else {
         hint.textContent = "Auto-download starts soon if idle.";
       }

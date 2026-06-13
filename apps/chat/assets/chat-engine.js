@@ -42,17 +42,34 @@ import { saveActiveSession } from "./session-manager.js";
 
     export function setSendEnabled() {
       const sendBtn = document.getElementById("sendBtn");
-      const ready = appState.latestStatus && appState.latestStatus.state === "READY";
+      const userPrompt = document.getElementById("userPrompt");
+      const state = String(appState.latestStatus?.state || "").toUpperCase();
+      const ready = appState.latestStatus && state === "READY";
       if (appState.requestInFlight) {
         sendBtn.disabled = false;
         sendBtn.textContent = "Stop";
         sendBtn.classList.add("stop-mode");
+        if (userPrompt) userPrompt.disabled = false;
         renderComposerCapabilities(appState.latestStatus);
         return;
       }
       sendBtn.textContent = "Send";
       sendBtn.classList.remove("stop-mode");
       sendBtn.disabled = !ready;
+      if (userPrompt) {
+        userPrompt.disabled = !ready;
+        if (!ready) {
+          const placeholders = {
+            DOWNLOADING: "Downloading model — please wait…",
+            LOADING: "Loading model into memory…",
+            BOOTING: "Starting inference engine…",
+            DOWN: "Service unavailable",
+          };
+          userPrompt.placeholder = placeholders[state] || "Waiting for model to be ready…";
+        } else {
+          userPrompt.placeholder = "Message Potato OS…";
+        }
+      }
       renderComposerCapabilities(appState.latestStatus);
     }
 
