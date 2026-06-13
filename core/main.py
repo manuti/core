@@ -61,6 +61,7 @@ try:
         set_download_countdown_enabled,
         update_model_settings,
         validate_model_url,
+        load_hf_token,
         _model_file_path,
         _sanitize_filename,
         _slugify_id,
@@ -186,6 +187,7 @@ except ModuleNotFoundError:
         set_download_countdown_enabled,
         update_model_settings,
         validate_model_url,
+        load_hf_token,
         _model_file_path,
         _sanitize_filename,
         _slugify_id,
@@ -1211,7 +1213,7 @@ async def start_model_download(
         env = _runtime_env(runtime)
         env["POTATO_MODEL_PATH"] = str(target_path)
         env["POTATO_MODEL_URL"] = source_url
-        hf_token = str(model.get("hf_token") or "").strip()
+        hf_token = load_hf_token(runtime, selected_model_id)
         if hf_token:
             env["POTATO_HF_TOKEN"] = hf_token
 

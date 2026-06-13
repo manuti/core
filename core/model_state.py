@@ -13,6 +13,10 @@ for a follow-up ticket.
 
 from __future__ import annotations
 
+import json
+import os
+import stat
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -179,6 +183,54 @@ def download_default_projector_for_model(*, runtime: RuntimeConfig, model_id: st
 
 def build_model_projector_status(runtime: RuntimeConfig, model: dict[str, Any]) -> dict[str, Any]:
     return _inferno_build_model_projector_status(_models_dir(runtime), model)
+
+
+# ---------------------------------------------------------------------------
+# HuggingFace token store (separate file, mode 0600)
+# ---------------------------------------------------------------------------
+
+def _hf_tokens_path(runtime: RuntimeConfig) -> Path:
+    return runtime.base_dir / "state" / "hf_tokens.json"
+
+
+def save_hf_token(runtime: RuntimeConfig, model_id: str, token: str) -> None:
+    path = _hf_tokens_path(runtime)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        tokens: dict[str, str] = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    except (json.JSONDecodeError, OSError):
+        tokens = {}
+    if token:
+        tokens[model_id] = token
+    else:
+        tokens.pop(model_id, None)
+    fd, tmp_name = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
+    try:
+        os.chmod(fd, stat.S_IRUSR | stat.S_IWUSR)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(json.dumps(tokens))
+        os.replace(tmp_name, path)
+        os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
+    except OSError:
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+
+
+def load_hf_token(runtime: RuntimeConfig, model_id: str) -> str | None:
+    path = _hf_tokens_path(runtime)
+    if not path.exists():
+        return None
+    try:
+        tokens: dict[str, str] = json.loads(path.read_text(encoding="utf-8"))
+        return tokens.get(model_id) or None
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def delete_hf_token(runtime: RuntimeConfig, model_id: str) -> None:
+    save_hf_token(runtime, model_id, "")
 
 
 # ---------------------------------------------------------------------------
