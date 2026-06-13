@@ -130,6 +130,20 @@ import { formatBytes, formatCountdownSeconds } from "./utils.js";
         hint.textContent = "Auto-download starts soon if idle.";
       }
 
+      // Vision models pull a second file (the vision encoder / projector) right
+      // after the main weights, so warn up front to avoid the "why is it
+      // downloading again?" surprise.  Only relevant before/while the main
+      // model is being fetched — not on storage/failure messages above.
+      const isVisionModel = statusPayload?.model?.capabilities?.vision === true;
+      const isStorageOrFailure =
+        downloadError === "insufficient_storage"
+        || (Number.isFinite(freeBytes) && freeBytes < 512 * 1024 * 1024)
+        || (downloadError === "download_failed" && resumableFailedModel);
+      if (isVisionModel && !isStorageOrFailure) {
+        hint.textContent +=
+          " This is a vision model, so a separate vision encoder is downloaded right after the main weights.";
+      }
+
       if (appState.downloadStartInFlight) {
         startBtn.textContent = resumableFailedModel ? "Resuming..." : "Starting...";
         startBtn.disabled = true;

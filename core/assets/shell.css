@@ -1042,6 +1042,16 @@
       text-transform: none;
     }
 
+    .settings-subsection-title {
+      margin: 6px 0 0;
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      text-transform: uppercase;
+      opacity: 0.85;
+    }
+
     .settings-section-note {
       font-size: 12.5px;
       color: var(--text-muted);

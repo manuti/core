@@ -66,6 +66,70 @@ test("shows manual download prompt when model missing and starts download on cli
   await expect(page.locator("#downloadPrompt")).toBeHidden();
 });
 
+test("warns up front that a vision model also downloads a vision encoder", async ({ page }) => {
+  await page.route("**/status", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        state: "BOOTING",
+        model_present: false,
+        model: { filename: "Qwen3.5-VL-2B-Q4_K_M.gguf", capabilities: { vision: true } },
+        llama_server: { healthy: false },
+        backend: { mode: "llama", active: "llama", fallback_active: false },
+        download: {
+          bytes_total: 0,
+          bytes_downloaded: 0,
+          percent: 0,
+          error: null,
+          active: false,
+          auto_start_seconds: 300,
+          auto_start_remaining_seconds: 287,
+          countdown_enabled: true,
+        },
+      }),
+    });
+  });
+
+  await page.goto("/");
+  await waitForStatusApplied(page);
+
+  await expect(page.locator("#downloadPrompt")).toBeVisible();
+  await expect(page.locator("#downloadPromptHint")).toContainText("vision encoder");
+});
+
+test("does not show vision encoder note for a text-only model", async ({ page }) => {
+  await page.route("**/status", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        state: "BOOTING",
+        model_present: false,
+        model: { filename: "Qwen3.5-2B-Q4_K_M.gguf", capabilities: { vision: false } },
+        llama_server: { healthy: false },
+        backend: { mode: "llama", active: "llama", fallback_active: false },
+        download: {
+          bytes_total: 0,
+          bytes_downloaded: 0,
+          percent: 0,
+          error: null,
+          active: false,
+          auto_start_seconds: 300,
+          auto_start_remaining_seconds: 287,
+          countdown_enabled: true,
+        },
+      }),
+    });
+  });
+
+  await page.goto("/");
+  await waitForStatusApplied(page);
+
+  await expect(page.locator("#downloadPrompt")).toBeVisible();
+  await expect(page.locator("#downloadPromptHint")).not.toContainText("vision encoder");
+});
+
 test("surfaces failed downloads clearly and resumes them from the UI", async ({ page }) => {
   let downloadActive = false;
   let downloadError = "download_failed";

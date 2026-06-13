@@ -325,8 +325,9 @@
       </div>
       <div class="settings-grid">
         <section id="legacySettingsRuntimeSection" class="settings-section full">
-          <h3 class="settings-section-title">Runtime controls</h3>
-          <div class="settings-section-note">Runtime controls for the active llama backend.</div>
+          <h3 class="settings-section-title">Runtime</h3>
+          <div class="settings-section-note">Backend, memory loading, and compatibility for the active llama runtime.</div>
+          <h4 class="settings-subsection-title">Compatibility</h4>
           <label class="full" style="display:flex; align-items:center; gap:8px;">
             <input id="largeModelOverrideEnabled" type="checkbox">
             <span>Allow unsupported large models (try anyway)</span>
@@ -335,6 +336,7 @@
             <button id="applyLargeModelOverrideBtn" class="ghost-btn" type="button">Apply compatibility override</button>
           </div>
           <div id="largeModelOverrideStatus" class="runtime-compact">Compatibility override: default warnings</div>
+          <h4 class="settings-subsection-title">Memory loading</h4>
           <label class="full">GGUF loading mode (requires runtime restart)
             <select id="llamaMemoryLoadingMode">
               <option value="auto">Automatic (profile-based)</option>
@@ -347,7 +349,7 @@
           </div>
           <div id="llamaMemoryLoadingStatus" class="runtime-compact">Current memory loading: unknown</div>
           <div class="full">
-            <h3 class="settings-section-title">Llama Runtime</h3>
+            <h4 class="settings-subsection-title">Llama Runtime</h4>
             <div id="llamaRuntimeCurrent" class="runtime-compact">Current runtime: unknown</div>
             <label class="full">Runtime family
               <select id="llamaRuntimeFamilySelect">
@@ -359,6 +361,10 @@
             </div>
             <div id="llamaRuntimeSwitchStatus" class="runtime-compact">No runtime switch in progress.</div>
           </div>
+        </section>
+        <section class="settings-section full">
+          <h3 class="settings-section-title">Diagnostics</h3>
+          <div class="settings-section-note">Recovery actions. Use if the model is stuck or memory needs clearing.</div>
           <div class="settings-action-row full">
             <button id="resetRuntimeBtn" class="ghost-btn danger-btn" type="button">Unload model + clean memory + restart</button>
           </div>

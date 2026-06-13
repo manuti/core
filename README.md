@@ -54,9 +54,10 @@ Potato OS is an early release meant for testing and tinkering, not production us
 - Chat with streaming responses
 - Vision — attach a photo and ask about it
 - Multi-chat sessions (persisted in your browser)
-- Model management — download by URL, upload, delete, switch active model
+- Model management — download by URL, upload, delete, switch active model, with on-disk size shown per model
 - HuggingFace token support — download gated/private models with an `hf_*` token (stored in a 0600 file, never in logs or API responses)
-- System monitoring — CPU, GPU, temperature, memory (available, not just free), storage, power draw
+- Concurrent request queuing — a bounded inference queue lets a few requests wait their turn instead of failing immediately; only requests beyond the limit get a 429 (configurable via `POTATO_INFERENCE_MAX_QUEUE`, default 3)
+- System monitoring — CPU, GPU, temperature, memory (available, not just free), storage, power draw, with a live thermal-throttling warning during inference
 - Dual inference runtime — ik_llama (Pi 5 default) and upstream llama.cpp (Pi 4 default, Pi 5 fallback)
 - OpenAI-compatible API — `GET /v1/models` and `POST /v1/chat/completions`
 - `potatoctl` management CLI — health check, logs, status, restart
