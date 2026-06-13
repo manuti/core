@@ -143,6 +143,7 @@
       </header>
 
       <div id="platformNotice" class="platform-notice" hidden aria-live="polite"></div>
+      <div id="throttleBanner" class="throttle-banner" hidden role="alert">⚠️ CPU throttling — consider active cooling</div>
 
       <main id="appContainer"></main>
 
@@ -184,7 +185,7 @@
               <div class="settings-action-row full">
                 <button id="registerModelBtn" class="ghost-btn" type="button">Add URL model</button>
               </div>
-              <div id="modelUrlStatus" class="runtime-compact full">Add an HTTPS .gguf URL to register another model.</div>
+              <div id="modelUrlStatus" class="runtime-compact full">Add an HTTPS .gguf URL to register another model. Pi 5 8 GB: up to ~8 GB with SSD, ~5 GB on SD card. Pi 4 8 GB: up to ~5 GB.</div>
               <label class="full">Upload local GGUF to Pi
                 <input id="modelUploadInput" type="file" accept=".gguf,application/octet-stream">
               </label>

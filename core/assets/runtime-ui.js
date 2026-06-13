@@ -313,6 +313,11 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
           ? new Date(updatedTs * 1000).toLocaleTimeString()
           : "--";
       }
+
+      const throttleBanner = document.getElementById("throttleBanner");
+      if (throttleBanner) {
+        throttleBanner.hidden = currentFlags.length === 0;
+      }
     }
 
     export function setModelUploadStatus(message) {

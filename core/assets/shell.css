@@ -493,6 +493,15 @@
     .platform-notice--error   { background: color-mix(in srgb, #ef4444 12%, var(--panel)); }
     .platform-notice--info    { background: var(--panel); }
 
+    .throttle-banner {
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      border-bottom: 1px solid color-mix(in srgb, #eab308 40%, transparent);
+      background: color-mix(in srgb, #eab308 14%, var(--panel));
+      color: var(--fg);
+    }
+
     .chat-header h1 {
       margin: 0;
       font-size: 24px;
