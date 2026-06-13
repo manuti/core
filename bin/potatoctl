@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# potatoctl — Potato OS management CLI
+set -euo pipefail
+
+POTATO_URL="${POTATO_URL:-http://potato.local}"
+POTATO_SERVICE="${POTATO_SERVICE:-potato}"
+
+_usage() {
+  cat >&2 <<EOF
+Usage: potatoctl <command> [args]
+
+Commands:
+  doctor              Check Potato OS health (service, API, model)
+  logs [api|llm|all]  Stream logs (default: api)
+  status              Show raw JSON status from the API
+  restart             Restart the potato service
+EOF
+  exit 1
+}
+
+_check() {
+  local label="$1" ok="$2" detail="${3:-}"
+  if [ "$ok" = "true" ]; then
+    printf '  ✓ %s\n' "$label"
+  else
+    printf '  ✗ %s%s\n' "$label" "${detail:+  ($detail)}"
+  fi
+}
+
+cmd_doctor() {
+  printf 'Potato OS — doctor\n\n'
+
+  # 1. systemd service
+  if systemctl is-active --quiet "$POTATO_SERVICE" 2>/dev/null; then
+    _check "Service ($POTATO_SERVICE)" true
+  else
+    _check "Service ($POTATO_SERVICE)" false "run: sudo systemctl start $POTATO_SERVICE"
+  fi
+
+  # 2. API reachable
+  local status_json
+  if status_json="$(curl -sf --max-time 5 "$POTATO_URL/status" 2>/dev/null)"; then
+    _check "API ($POTATO_URL/status)" true
+
+    # 3. State
+    local state
+    state="$(printf '%s' "$status_json" | python3 -c "import json,sys; print(json.load(sys.stdin).get('state','?'))" 2>/dev/null || echo '?')"
+    if [ "$state" = "READY" ]; then
+      _check "State" true "READY"
+    else
+      _check "State" false "$state"
+    fi
+
+    # 4. Model
+    local model_filename
+    model_filename="$(printf '%s' "$status_json" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('model',{}).get('filename','none'))" 2>/dev/null || echo 'none')"
+    if [ "$model_filename" != "none" ] && [ -n "$model_filename" ]; then
+      _check "Model" true "$model_filename"
+    else
+      _check "Model" false "no model loaded"
+    fi
+
+    # 5. Version
+    local version
+    version="$(printf '%s' "$status_json" | python3 -c "import json,sys; print(json.load(sys.stdin).get('update',{}).get('current_version','?'))" 2>/dev/null || echo '?')"
+    printf '\n  Version: %s\n' "$version"
+  else
+    _check "API ($POTATO_URL/status)" false "is potato.local reachable?"
+  fi
+
+  printf '\n'
+}
+
+cmd_logs() {
+  local target="${1:-api}"
+  case "$target" in
+    api|all)
+      exec journalctl -u "$POTATO_SERVICE" -f -n 100
+      ;;
+    llm)
+      exec journalctl -u "$POTATO_SERVICE" -f -n 100 --grep="llama"
+      ;;
+    model)
+      exec journalctl -u "$POTATO_SERVICE" -f -n 100 --grep="model"
+      ;;
+    *)
+      printf 'Unknown log target: %s\nValid: api, llm, model, all\n' "$target" >&2
+      exit 1
+      ;;
+  esac
+}
+
+cmd_status() {
+  curl -sf "$POTATO_URL/status" | python3 -m json.tool
+}
+
+cmd_restart() {
+  printf 'Restarting %s...\n' "$POTATO_SERVICE"
+  sudo systemctl restart "$POTATO_SERVICE"
+  printf 'Done.\n'
+}
+
+[ $# -lt 1 ] && _usage
+
+case "$1" in
+  doctor)   cmd_doctor ;;
+  logs)     cmd_logs "${2:-api}" ;;
+  status)   cmd_status ;;
+  restart)  cmd_restart ;;
+  *)        _usage ;;
+esac

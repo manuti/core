@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -13,18 +14,47 @@ from inferno import BackendProxyError, ChatRepositoryManager
 
 try:
     from core.deps import get_runtime, get_chat_repository
-    from core.model_state import apply_model_chat_defaults
+    from core.model_state import apply_model_chat_defaults, ensure_models_state
     from core.runtime_state import RuntimeConfig
     from core.settings import merge_active_model_chat_defaults, merge_chat_defaults
 except ModuleNotFoundError:
     from deps import get_runtime, get_chat_repository  # type: ignore[no-redef]
-    from model_state import apply_model_chat_defaults  # type: ignore[no-redef]
+    from model_state import apply_model_chat_defaults, ensure_models_state  # type: ignore[no-redef]
     from runtime_state import RuntimeConfig  # type: ignore[no-redef]
     from settings import merge_active_model_chat_defaults, merge_chat_defaults  # type: ignore[no-redef]
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+@router.get("/v1/models")
+async def list_models(
+    runtime_cfg: RuntimeConfig = Depends(get_runtime),
+) -> JSONResponse:
+    models_state = ensure_models_state(runtime_cfg)
+    active_id = models_state.get("active_model_id")
+    now = int(time.time())
+    data = []
+    for item in models_state.get("models", []):
+        model_id = str(item.get("id") or "")
+        filename = str(item.get("filename") or "")
+        if not filename:
+            continue
+        # Only expose models that are downloaded and ready
+        if item.get("status") not in (None, "ready", "downloaded"):
+            continue
+        entry_id = "local" if model_id == active_id else filename
+        data.append({
+            "id": entry_id,
+            "object": "model",
+            "created": now,
+            "owned_by": "potato-os",
+        })
+    # Always include a "local" alias pointing to the active model
+    if not any(m["id"] == "local" for m in data):
+        data.insert(0, {"id": "local", "object": "model", "created": now, "owned_by": "potato-os"})
+    return JSONResponse({"object": "list", "data": data})
 
 
 @router.post("/v1/chat/completions")
