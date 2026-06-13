@@ -66,6 +66,15 @@ The Imager walks you through five customisation screens. Fill in each one and cl
 
 **Hostname** — Set this to `potato`. This is required for `http://potato.local` to work on your network.
 
+> **Running more than one Potato OS unit on the same network?** Two units both
+> named `potato` collide over mDNS and the second becomes unreachable at
+> `potato.local`. Give each unit a distinct hostname here (e.g. `potato-lab`,
+> `potato-2`) — it will then be reachable at `http://<that-name>.local`.
+> Alternatively, set the environment variable `POTATO_HOSTNAME_SUFFIX_FROM_MAC=1`
+> for the first-boot service to auto-append a short suffix derived from the MAC
+> address (e.g. `potato-a3f.local`), which keeps each unit unique without manual
+> naming.
+
 <img src="assets/install_steps/07-hostname.jpg" alt="Hostname setting" width="680">
 
 **Localisation** — Pick your time zone and keyboard layout.
@@ -136,6 +145,7 @@ xz -dc potato-lite-*.img.xz | sudo dd of=/dev/rdiskN bs=4m
 - Check that the Pi and your browser are on the same network
 - Verify the hostname was set to `potato` during customisation
 - Try the Pi's IP address directly if mDNS is not working on your network
+- If you have more than one Potato OS unit, they may be colliding on `potato.local` — give each a distinct hostname (see the Hostname note above)
 
 **Model download seems stuck:**
 - The first-boot download is ~1.8 GB — on a slow connection it can take a while

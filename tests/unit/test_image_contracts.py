@@ -352,6 +352,21 @@ def test_firstboot_script_enforces_potato_hostname_and_avahi_refresh():
     assert 'chmod 0755 "${POTATO_BASE_DIR}"' in firstboot
 
 
+def test_firstboot_script_supports_opt_in_mac_hostname_suffix():
+    """Multiple units can avoid `potato.local` mDNS collisions by deriving a
+    short suffix from the MAC address, opt-in and only when the hostname is the
+    default so an explicit POTATO_HOSTNAME still wins."""
+    firstboot = Path("bin/firstboot.sh").read_text(encoding="utf-8")
+
+    assert 'POTATO_HOSTNAME_SUFFIX_FROM_MAC="${POTATO_HOSTNAME_SUFFIX_FROM_MAC:-0}"' in firstboot
+    # Gated on the flag AND the default hostname (explicit override wins).
+    assert '[ "${POTATO_HOSTNAME_SUFFIX_FROM_MAC}" = "1" ]' in firstboot
+    assert '[ "${POTATO_HOSTNAME}" = "potato" ]' in firstboot
+    # Reads the MAC from a network interface and forms potato-<suffix>.
+    assert "/sys/class/net/eth0/address" in firstboot
+    assert 'POTATO_HOSTNAME="potato-${mac_hex: -3}"' in firstboot
+
+
 def test_image_build_guide_exists_with_required_sections():
     guide = Path("docs/building-images.md").read_text(encoding="utf-8")
 
