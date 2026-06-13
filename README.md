@@ -68,17 +68,26 @@ Updates are reflash-only for now — there is no OTA or in-place upgrade path ye
 If you already have a Potato OS installation you can push updates over SSH:
 
 ```bash
-# From the parent directory of your local clone (e.g. ~/apps/potatoos/)
-rsync -av --no-group core/core/ manuti@potato.local:/tmp/core_update/
-rsync -av --no-group core/bin/  manuti@potato.local:/tmp/bin_update/
-rsync -av --no-group core/apps/ manuti@potato.local:/tmp/apps_update/
+# From the root of your local clone
+# Create destination directories first, then sync
+ssh <user>@potato.local "mkdir -p /tmp/potato_update/core /tmp/potato_update/bin /tmp/potato_update/apps"
 
-# On the Pi (SSH in)
-sudo cp -r /tmp/core_update/* /opt/potato/core/
-sudo cp -r /tmp/bin_update/*  /opt/potato/bin/
-sudo cp -r /tmp/apps_update/* /opt/potato/apps/
+rsync -av --no-group core/ <user>@potato.local:/tmp/potato_update/core/
+rsync -av --no-group bin/  <user>@potato.local:/tmp/potato_update/bin/
+rsync -av --no-group apps/ <user>@potato.local:/tmp/potato_update/apps/
+
+# On the Pi (SSH in, or chain with &&)
+sudo cp -r /tmp/potato_update/core/* /opt/potato/core/
+sudo cp -r /tmp/potato_update/bin/*  /opt/potato/bin/
+sudo cp -r /tmp/potato_update/apps/* /opt/potato/apps/
 sudo chown -R potato:potato /opt/potato/
 sudo systemctl restart potato
+```
+
+To make `potatoctl` available from anywhere, add `/opt/potato/bin` to your PATH on the Pi:
+
+```bash
+echo 'export PATH="/opt/potato/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
 ```
 
 ## Recovery and rollback
