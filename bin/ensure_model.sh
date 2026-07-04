@@ -10,10 +10,18 @@ mkdir -p "$(dirname "${MODEL_PATH}")" "$(dirname "${STATE_PATH}")"
 TMP_PATH="${MODEL_PATH}.part"
 CURL_ERR_PATH="${STATE_PATH}.curl.err"
 
+# Pass the HuggingFace token to curl via a 0600 config file rather than on the
+# command line, so it never appears in argv (ps / /proc/<pid>/cmdline) during
+# the long download.
+HF_CONFIG=""
 HF_AUTH=()
 if [ -n "${POTATO_HF_TOKEN:-}" ]; then
-  HF_AUTH=(-H "Authorization: Bearer ${POTATO_HF_TOKEN}")
+  HF_CONFIG="$(mktemp "${TMPDIR:-/tmp}/potato-hf.XXXXXX")"
+  chmod 600 "${HF_CONFIG}"
+  printf 'header = "Authorization: Bearer %s"\n' "${POTATO_HF_TOKEN}" > "${HF_CONFIG}"
+  HF_AUTH=(--config "${HF_CONFIG}")
 fi
+trap '[ -n "${HF_CONFIG}" ] && rm -f "${HF_CONFIG}"' EXIT
 
 filesize() {
   local path="$1"

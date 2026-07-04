@@ -202,6 +202,20 @@ def test_ensure_model_runs_curl_at_idle_io_priority():
     assert "ionice -c3 nice -n 19 curl" in script
 
 
+def test_ensure_model_keeps_hf_token_out_of_argv():
+    """The HF token must go to curl via a 0600 config file, never on the command
+    line where ps / /proc/*/cmdline would expose it."""
+    script = Path("bin/ensure_model.sh").read_text(encoding="utf-8")
+
+    # Token delivered via a locked-down config file consumed with --config.
+    assert "chmod 600" in script
+    assert "--config" in script
+    assert 'HF_AUTH=(--config "${HF_CONFIG}")' in script
+    # The token must NOT be interpolated into an -H argument.
+    assert "Bearer ${POTATO_HF_TOKEN}" not in script
+    assert '-H "Authorization: Bearer' not in script
+
+
 def test_projector_download_happens_at_launch_not_during_model_download():
     """Projector download must not run inside start_model_download — it
     happens during launch args construction to avoid overlapping large
