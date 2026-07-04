@@ -229,6 +229,7 @@ async def test_request_llama_slot_cancel_returns_false_when_all_actions_fail(run
 async def test_fetch_remote_content_length_uses_streaming_range_fallback_without_body_download(monkeypatch):
     class _HeadResponse:
         headers: dict[str, str] = {}
+        is_redirect = False
 
     class _RangeResponse:
         status_code = 200
@@ -264,6 +265,8 @@ async def test_fetch_remote_content_length_uses_streaming_range_fallback_without
             return _StreamCtx(_RangeResponse())
 
     monkeypatch.setattr("core.runtime_state.httpx.AsyncClient", lambda timeout, follow_redirects: _Client())
+    # Keep the test hermetic — skip the SSRF DNS resolution.
+    monkeypatch.setattr("core.security.host_is_public", lambda _host: True)
 
     size_bytes = await fetch_remote_content_length_bytes("https://example.com/model.gguf")
 

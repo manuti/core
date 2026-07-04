@@ -116,6 +116,25 @@ async def register_model_endpoint(
     alias_raw = payload.get("alias")
     alias = str(alias_raw).strip() if isinstance(alias_raw, str) and alias_raw.strip() else None
     hf_token = str(payload.get("hf_token") or "").strip() or None
+
+    # SSRF guard: reject a URL whose host resolves to a non-public address up
+    # front (defense-in-depth; the download path re-checks at fetch time). Only
+    # applied to well-formed https URLs — validate_model_url owns scheme/format
+    # errors so their reasons ("https_required", "unsupported_model_format")
+    # are preserved.
+    if source_url:
+        from urllib.parse import urlparse as _urlparse
+        import asyncio as _asyncio
+        try:
+            from core.security import host_is_public
+        except ModuleNotFoundError:  # installed layout without the core. prefix
+            from security import host_is_public  # type: ignore[no-redef]
+        _parsed = _urlparse(source_url)
+        if _parsed.scheme == "https" and not await _asyncio.to_thread(
+            host_is_public, _parsed.hostname or ""
+        ):
+            return JSONResponse(status_code=400, content={"ok": False, "reason": "url_not_allowed"})
+
     ok, reason, model = register_model_url(runtime_cfg, source_url=source_url, alias=alias)
     if not ok:
         return JSONResponse(status_code=400, content={"ok": False, "reason": reason})

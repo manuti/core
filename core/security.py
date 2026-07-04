@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import ipaddress
 import os
+import socket
+from urllib.parse import urlparse
 
 # mDNS names (potato.local, potato-a3f.local, …) always pass.
 _ALLOWED_SUFFIXES = (".local",)
@@ -72,6 +74,70 @@ def is_host_allowed(host_header: str, *, extra_hosts: frozenset[str] = frozenset
     except ValueError:
         return False
     return ip.is_loopback or ip.is_private or ip.is_link_local
+
+
+# ---------------------------------------------------------------------------
+# Outbound SSRF guard (model URL downloads)
+# ---------------------------------------------------------------------------
+#
+# Model URLs are user-supplied and fetched server-side. Without a check the Pi
+# can be pointed (directly or via a redirect) at internal hosts / link-local
+# metadata endpoints. We resolve the host and refuse anything that isn't a
+# public address, so the download can only reach the public internet.
+
+
+def _ip_is_public(ip: ipaddress._BaseAddress) -> bool:
+    return not (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_reserved
+        or ip.is_multicast
+        or ip.is_unspecified
+    )
+
+
+def host_is_public(host: str) -> bool:
+    """Resolve ``host`` and return True only if every address is public.
+
+    An IP literal is checked directly; a name is resolved via DNS and *all*
+    returned addresses must be public (a single private answer fails closed).
+    Blocking — call via ``asyncio.to_thread`` from async code.
+    """
+    if not host:
+        return False
+    host = host.strip().lower().rstrip(".")
+    if host.startswith("[") and host.endswith("]"):
+        host = host[1:-1]
+    try:
+        return _ip_is_public(ipaddress.ip_address(host))
+    except ValueError:
+        pass  # not a literal — resolve it
+    try:
+        infos = socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
+    except (socket.gaierror, UnicodeError, OSError):
+        return False
+    if not infos:
+        return False
+    for info in infos:
+        try:
+            ip = ipaddress.ip_address(info[4][0])
+        except ValueError:
+            return False
+        if not _ip_is_public(ip):
+            return False
+    return True
+
+
+def url_download_allowed(url: str) -> bool:
+    """True if ``url`` is https and its host resolves only to public addresses."""
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return False
+    if parsed.scheme != "https":
+        return False
+    return host_is_public(parsed.hostname or "")
 
 
 def _host_from_scope(scope: dict) -> str:

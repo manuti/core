@@ -217,6 +217,14 @@ def test_ensure_model_runs_curl_at_idle_io_priority():
     assert "ionice -c3 nice -n 19 curl" in script
 
 
+def test_ensure_model_bounds_redirects_and_forces_https():
+    """SSRF hardening: curl must cap redirects and only follow https redirects."""
+    script = Path("bin/ensure_model.sh").read_text(encoding="utf-8")
+
+    assert script.count("--max-redirs 10") >= 2
+    assert script.count("--proto-redir =https") >= 2
+
+
 def test_ensure_model_keeps_hf_token_out_of_argv():
     """The HF token must go to curl via a 0600 config file, never on the command
     line where ps / /proc/*/cmdline would expose it."""

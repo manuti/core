@@ -1532,17 +1532,39 @@ def is_likely_too_large_for_storage(
 
 
 async def fetch_remote_content_length_bytes(source_url: str) -> int:
+    try:
+        from core.security import url_download_allowed
+    except ModuleNotFoundError:  # installed layout without the core. prefix
+        from security import url_download_allowed  # type: ignore[no-redef]
+
     timeout = httpx.Timeout(8.0, connect=3.0)
-    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
-        try:
-            response = await client.head(source_url)
+    # Follow redirects MANUALLY so every hop is SSRF-checked — httpx's
+    # follow_redirects would happily jump to an internal host.
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
+        url = source_url
+        for _hop in range(6):
+            if not await asyncio.to_thread(url_download_allowed, url):
+                return 0
+            try:
+                response = await client.head(url)
+            except (httpx.HTTPError, ValueError):
+                break
+            location = response.headers.get("location")
+            if response.is_redirect and location:
+                url = str(response.url.join(location))
+                continue
             header = response.headers.get("content-length")
             if header:
-                return max(0, int(header))
-        except (httpx.HTTPError, ValueError):
-            pass
+                try:
+                    return max(0, int(header))
+                except ValueError:
+                    pass
+            break
+        # Range-GET fallback on the last validated (non-redirecting) URL.
+        if not await asyncio.to_thread(url_download_allowed, url):
+            return 0
         try:
-            async with client.stream("GET", source_url, headers={"range": "bytes=0-0"}) as response:
+            async with client.stream("GET", url, headers={"range": "bytes=0-0"}) as response:
                 content_range = response.headers.get("content-range", "")
                 if "/" in content_range:
                     try:

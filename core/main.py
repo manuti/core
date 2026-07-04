@@ -1178,6 +1178,22 @@ async def start_model_download(
         if not source_url:
             return False, "source_url_missing"
 
+        # SSRF guard: refuse to fetch a URL whose host resolves to a private /
+        # loopback / link-local address before we spawn the downloader.
+        try:
+            from core.security import url_download_allowed
+        except ModuleNotFoundError:  # installed layout without the core. prefix
+            from security import url_download_allowed  # type: ignore[no-redef]
+        if not await asyncio.to_thread(url_download_allowed, source_url):
+            _upsert_model_status(
+                runtime,
+                model_id=selected_model_id,
+                status="failed",
+                error="url_not_allowed",
+                current_download_model_id=None,
+            )
+            return False, "url_not_allowed"
+
         expected_total_bytes = await fetch_remote_content_length_bytes(source_url)
         partial_path = _model_file_path(runtime, target_filename + ".part")
         partial_bytes = 0

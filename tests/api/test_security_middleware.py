@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from core.security import is_host_allowed
+from core.security import host_is_public, is_host_allowed, url_download_allowed
 
 
 # --- is_host_allowed (pure) -------------------------------------------------
@@ -97,3 +97,58 @@ def test_internal_get_is_not_csrf_protected(client):
     resp = client.get("/internal/llama-healthz", headers={"origin": "http://evil.com"})
     # Safe method — CSRF guard does not apply (may 200/404, never 403 from us).
     assert resp.status_code != 403
+
+
+# --- SSRF guard (model URLs) ------------------------------------------------
+
+@pytest.mark.parametrize(
+    "host,expected",
+    [
+        ("8.8.8.8", True),
+        ("1.1.1.1", True),
+        ("127.0.0.1", False),
+        ("10.0.0.1", False),
+        ("192.168.1.1", False),
+        ("172.16.0.1", False),
+        ("169.254.169.254", False),  # cloud metadata / link-local
+        ("::1", False),
+        ("", False),
+    ],
+)
+def test_host_is_public(host, expected):
+    assert host_is_public(host) is expected
+
+
+@pytest.mark.parametrize(
+    "url,expected",
+    [
+        ("https://8.8.8.8/model.gguf", True),
+        ("https://192.168.0.5/model.gguf", False),   # private
+        ("https://169.254.169.254/x.gguf", False),   # metadata
+        ("http://8.8.8.8/model.gguf", False),        # not https
+        ("file:///etc/passwd", False),
+        ("https://127.0.0.1/model.gguf", False),
+    ],
+)
+def test_url_download_allowed(url, expected):
+    assert url_download_allowed(url) is expected
+
+
+def test_url_download_allowed_resolves_dns(monkeypatch):
+    import socket as _socket
+
+    # A hostname that resolves to a private address must be rejected.
+    def _fake_getaddrinfo(host, *a, **k):
+        return [(_socket.AF_INET, _socket.SOCK_STREAM, 6, "", ("192.168.4.4", 0))]
+
+    monkeypatch.setattr("core.security.socket.getaddrinfo", _fake_getaddrinfo)
+    assert url_download_allowed("https://sneaky.example.com/x.gguf") is False
+
+
+def test_register_rejects_private_host_url(client):
+    resp = client.post(
+        "/internal/models/register",
+        json={"source_url": "https://192.168.0.5/model.gguf"},
+    )
+    assert resp.status_code == 400
+    assert resp.json().get("reason") == "url_not_allowed"
