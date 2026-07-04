@@ -107,6 +107,16 @@ def test_platform_css_renamed_to_shell():
     assert not (WEB_ASSETS_DIR / "chat.css").exists(), "core/assets/chat.css should not exist"
 
 
+def test_no_standalone_chat_html_page():
+    # core/assets/chat.html was a pre-app-switcher duplicate of index.html with
+    # no #appContainer, so shell.js never initialised the chat app on it — every
+    # composer control was inert. The live page is index.html; the chat UI is
+    # the fragment at apps/chat/assets/chat.html.
+    assert not (WEB_ASSETS_DIR / "chat.html").exists(), (
+        "core/assets/chat.html is a dead duplicate page — the app is served from index.html"
+    )
+
+
 def test_shell_html_references_shell_css():
     assert 'href="/assets/shell.css"' in CHAT_HTML
     assert 'href="/assets/chat.css"' not in CHAT_HTML

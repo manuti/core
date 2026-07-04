@@ -26,7 +26,7 @@ def _build_fake_app_tree(root: Path) -> None:
 
     assets = app / "assets"
     assets.mkdir()
-    (assets / "chat.html").write_text("<html></html>\n", encoding="utf-8")
+    (assets / "index.html").write_text("<html></html>\n", encoding="utf-8")
 
     bindir = root / "bin"
     bindir.mkdir()
@@ -103,7 +103,7 @@ def test_ota_tarball_contains_app_and_bin(tmp_path):
 
     assert "potato-os-0.5.0/core/__version__.py" in names
     assert "potato-os-0.5.0/core/main.py" in names
-    assert "potato-os-0.5.0/core/assets/chat.html" in names
+    assert "potato-os-0.5.0/core/assets/index.html" in names
     assert "potato-os-0.5.0/bin/run.sh" in names
     assert "potato-os-0.5.0/bin/install_dev.sh" in names
     assert "potato-os-0.5.0/bin/lib/build_helpers.sh" in names
