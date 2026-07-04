@@ -60,6 +60,23 @@ def _is_origin_allowed(origin: str | None, request_host: str) -> bool:
     return origin_host == host_only
 
 
+def _reap_idle_sessions(sessions: dict) -> None:
+    """Terminate sessions idle longer than IDLE_TIMEOUT_SECONDS.
+
+    Runs opportunistically when a new terminal connects, so abandoned-but-
+    connected root shells don't linger indefinitely (and don't permanently
+    consume one of the MAX_TERMINAL_SESSIONS slots).
+    """
+    now = time.monotonic()
+    for sid in list(sessions.keys()):
+        session = sessions.get(sid)
+        if session is None:
+            continue
+        last = session.get("last_activity", now)
+        if now - last > IDLE_TIMEOUT_SECONDS:
+            _cleanup_session(sid, sessions)
+
+
 def _cleanup_session(session_id: str, sessions: dict) -> None:
     """Kill the PTY child and close the master fd.  Properly reaps the child."""
     session = sessions.pop(session_id, None)
@@ -170,6 +187,11 @@ async def terminal_websocket(websocket: WebSocket) -> None:
         await websocket.close(code=4003)
         return
 
+    # Reap abandoned idle sessions before enforcing the limit, so they don't
+    # block new connections or leave root shells running forever. Offloaded to a
+    # thread because _cleanup_session does blocking waitpid/sleep.
+    await asyncio.get_running_loop().run_in_executor(None, _reap_idle_sessions, sessions)
+
     if len(sessions) >= MAX_TERMINAL_SESSIONS:
         await websocket.accept()
         await websocket.send_text(
@@ -207,7 +229,9 @@ async def terminal_websocket(websocket: WebSocket) -> None:
         os.execvp(shell, [shell, "-l"])
         os._exit(1)
 
-    # Parent process — set non-blocking on the master fd
+    # Parent process — ensure the master fd is in blocking mode. Reads are
+    # gated by select() in the reader thread (_blocking_pty_read), so clearing
+    # O_NONBLOCK is intentional here.
     flags = fcntl.fcntl(master_fd, fcntl.F_GETFL)
     fcntl.fcntl(master_fd, fcntl.F_SETFL, flags & ~os.O_NONBLOCK)
 
@@ -241,8 +265,16 @@ async def terminal_websocket(websocket: WebSocket) -> None:
                     except OSError:
                         break
             elif msg_type == "resize":
-                cols = int(msg.get("cols", 80))
-                rows = int(msg.get("rows", 24))
+                # Coerce defensively: a non-integer or out-of-range value from a
+                # client must not raise (ValueError / struct.error) and tear down
+                # the session. Clamp to sane bounds (struct "H" is 0..65535).
+                try:
+                    cols = int(msg.get("cols", 80))
+                    rows = int(msg.get("rows", 24))
+                except (TypeError, ValueError):
+                    cols, rows = 80, 24
+                cols = max(1, min(cols, 1000))
+                rows = max(1, min(rows, 1000))
                 try:
                     fcntl.ioctl(
                         master_fd,

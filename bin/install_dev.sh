@@ -324,6 +324,8 @@ potato ALL=(root) NOPASSWD: /bin/chown -R potato\:potato /opt/potato/core
 potato ALL=(root) NOPASSWD: /usr/bin/chown -R potato\:potato /opt/potato/core
 potato ALL=(root) NOPASSWD: /bin/chown -R potato\:potato /opt/potato/bin
 potato ALL=(root) NOPASSWD: /usr/bin/chown -R potato\:potato /opt/potato/bin
+potato ALL=(root) NOPASSWD: /bin/chown -R potato\:potato /opt/potato/apps
+potato ALL=(root) NOPASSWD: /usr/bin/chown -R potato\:potato /opt/potato/apps
 SUDOERS
 run_sudo install -m 0440 "${sudoers_ota_tmp}" /etc/sudoers.d/potato-ota-repair
 rm -f "${sudoers_ota_tmp}"

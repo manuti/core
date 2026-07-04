@@ -169,10 +169,6 @@ import { registerPlatformShell } from "./platform-controls.js";
         const modelName = statusPayload?.model?.filename || "Unknown model";
         modelNameField.textContent = statusPayload?.model_present ? modelName : `${modelName} (not loaded)`;
       }
-      const countdownSelect = document.getElementById("downloadCountdownEnabled");
-      if (countdownSelect) {
-        countdownSelect.value = statusPayload?.download?.countdown_enabled === false ? "false" : "true";
-      }
       updateLlamaIndicator(statusPayload);
       if (appState.modelSwitcherOpen) populateModelSwitcher();
       renderDownloadPrompt(statusPayload);

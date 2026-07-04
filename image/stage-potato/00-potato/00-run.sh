@@ -3,8 +3,8 @@ set -euo pipefail
 
 rsync -a files/ "${ROOTFS_DIR}/"
 
-install -d -m 0755 "${ROOTFS_DIR}/opt/potato" "${ROOTFS_DIR}/opt/potato"/{app,bin,models,state,config,llama,nginx,systemd}
-chmod 0755 "${ROOTFS_DIR}/opt" "${ROOTFS_DIR}/opt/potato" "${ROOTFS_DIR}/opt/potato"/{app,bin,models,state,config,llama,nginx,systemd}
+install -d -m 0755 "${ROOTFS_DIR}/opt/potato" "${ROOTFS_DIR}/opt/potato"/{apps,bin,models,state,config,llama,nginx,systemd}
+chmod 0755 "${ROOTFS_DIR}/opt" "${ROOTFS_DIR}/opt/potato" "${ROOTFS_DIR}/opt/potato"/{apps,bin,models,state,config,llama,nginx,systemd}
 
 chmod +x "${ROOTFS_DIR}"/opt/potato/bin/*.sh
 chmod +x "${ROOTFS_DIR}/opt/potato/bin/potatoctl"
@@ -81,10 +81,12 @@ SUDOERS
 chmod 0440 /etc/sudoers.d/potato-terminal
 
 cat > /etc/sudoers.d/potato-ota-repair <<'SUDOERS'
-potato ALL=(root) NOPASSWD: /bin/chown -R potato\:potato /opt/potato/app
-potato ALL=(root) NOPASSWD: /usr/bin/chown -R potato\:potato /opt/potato/app
+potato ALL=(root) NOPASSWD: /bin/chown -R potato\:potato /opt/potato/core
+potato ALL=(root) NOPASSWD: /usr/bin/chown -R potato\:potato /opt/potato/core
 potato ALL=(root) NOPASSWD: /bin/chown -R potato\:potato /opt/potato/bin
 potato ALL=(root) NOPASSWD: /usr/bin/chown -R potato\:potato /opt/potato/bin
+potato ALL=(root) NOPASSWD: /bin/chown -R potato\:potato /opt/potato/apps
+potato ALL=(root) NOPASSWD: /usr/bin/chown -R potato\:potato /opt/potato/apps
 SUDOERS
 chmod 0440 /etc/sudoers.d/potato-ota-repair
 

@@ -49,7 +49,7 @@ fi
 
 run_sudo systemctl disable --now potato.service potato-firstboot.service potato-runtime-reset.service || true
 run_sudo rm -f /etc/systemd/system/potato.service /etc/systemd/system/potato-firstboot.service /etc/systemd/system/potato-runtime-reset.service
-run_sudo rm -f /etc/sudoers.d/potato-runtime-reset
+run_sudo rm -f /etc/sudoers.d/potato-runtime-reset /etc/sudoers.d/potato-terminal /etc/sudoers.d/potato-ota-repair
 run_sudo rm -f /usr/local/bin/potatoctl
 run_sudo rm -f /etc/nginx/sites-enabled/potato /etc/nginx/sites-available/potato
 run_sudo systemctl disable --now nginx || true

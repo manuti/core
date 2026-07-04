@@ -196,6 +196,22 @@ def test_terminal_rejects_wrong_token(terminal_client):
             ws.receive_text()
 
 
+def test_terminal_resize_with_bad_values_does_not_kill_session(terminal_client):
+    """A non-integer or out-of-range resize must be coerced, not crash the session."""
+    with terminal_client.websocket_connect(_ws_url(terminal_client), headers={"origin": "http://testserver"}) as ws:
+        _recv_until(ws, lambda m: m["type"] == "output")
+
+        # Non-integer and out-of-range values — previously raised ValueError /
+        # struct.error and tore down the session.
+        ws.send_text(json.dumps({"type": "resize", "cols": "not-a-number", "rows": 24}))
+        ws.send_text(json.dumps({"type": "resize", "cols": 999999, "rows": -5}))
+
+        # Session must still be alive and responsive: echo still flows.
+        ws.send_text(json.dumps({"type": "input", "data": "echo alive\r"}))
+        msgs = _recv_until(ws, lambda m: m["type"] == "output" and "alive" in m.get("data", ""), timeout=5)
+        assert any("alive" in m.get("data", "") for m in msgs)
+
+
 def test_terminal_shell_exit_closes_websocket(terminal_client):
     """P3: When the user types 'exit', the WS should close and session should be freed."""
     with terminal_client.websocket_connect(_ws_url(terminal_client), headers={"origin": "http://testserver"}) as ws:
