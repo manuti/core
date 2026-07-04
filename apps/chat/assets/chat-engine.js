@@ -492,10 +492,28 @@ import { saveActiveSession } from "./session-manager.js";
       return `TTFT ${ttftText} · ${tokPerSecond.toFixed(2)} tok/sec · ${tokens} tokens · ${seconds.toFixed(2)}s · Stop reason: ${formatStopReason(finishReason)}`;
     }
 
+    export function canSendNow() {
+      return String(appState.latestStatus?.state || "").toUpperCase() === "READY";
+    }
+
+    export function notifyNotReadyToSend() {
+      const state = String(appState.latestStatus?.state || "").toUpperCase();
+      const messages = {
+        DOWNLOADING: "Model is still downloading — it'll be ready shortly.",
+        LOADING: "Model is loading into memory…",
+        BOOTING: "Starting the inference engine…",
+        DOWN: "Model is unavailable right now.",
+        ERROR: "Model is in an error state — check the status panel.",
+      };
+      setComposerActivity(messages[state] || "Waiting for the model to be ready…");
+    }
+
     export async function sendChat() {
       if (appState.requestInFlight) return;
-      const state = String(appState.latestStatus?.state || "").toUpperCase();
-      if (state !== "READY") return;
+      if (!canSendNow()) {
+        notifyNotReadyToSend();
+        return;
+      }
       if (appState.imageCancelRecoveryTimer) {
         window.clearTimeout(appState.imageCancelRecoveryTimer);
         appState.imageCancelRecoveryTimer = null;

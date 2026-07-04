@@ -92,6 +92,10 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
         applyRuntimeMetricSeverity(storageDetail, Number.NaN);
         applyRuntimeMetricSeverity(tempDetail, Number.NaN);
         applyRuntimeMetricSeverity(gpuDetail, Number.NaN);
+        // Metrics unavailable — we can't assert throttling, so clear any stale
+        // banner rather than leaving a red "CPU throttling" alert stuck on.
+        const throttleBannerUnavail = document.getElementById("throttleBanner");
+        if (throttleBannerUnavail) throttleBannerUnavail.hidden = true;
         return;
       }
 

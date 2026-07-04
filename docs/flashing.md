@@ -70,10 +70,13 @@ The Imager walks you through five customisation screens. Fill in each one and cl
 > named `potato` collide over mDNS and the second becomes unreachable at
 > `potato.local`. Give each unit a distinct hostname here (e.g. `potato-lab`,
 > `potato-2`) — it will then be reachable at `http://<that-name>.local`.
-> Alternatively, set the environment variable `POTATO_HOSTNAME_SUFFIX_FROM_MAC=1`
-> for the first-boot service to auto-append a short suffix derived from the MAC
-> address (e.g. `potato-a3f.local`), which keeps each unit unique without manual
-> naming.
+> Alternatively, to auto-append a short suffix derived from the MAC address
+> (e.g. `potato-a3f.local`) without naming each unit by hand: after flashing,
+> re-open the SD card's **boot** partition on your computer and create a file
+> named `potato-firstboot.env` containing the single line
+> `POTATO_HOSTNAME_SUFFIX_FROM_MAC=1`. The first-boot service reads it and each
+> unit picks a unique hostname automatically. (This only works if you leave the
+> Imager hostname at the default `potato`; an explicit hostname always wins.)
 
 <img src="assets/install_steps/07-hostname.jpg" alt="Hostname setting" width="680">
 

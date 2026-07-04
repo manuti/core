@@ -6,7 +6,7 @@ import { registerUpdateCallbacks } from "/assets/update-ui.js";
 import { registerOpenEditMessageModal, getMessagesBox, isMessagesPinned, setMessagesPinnedState, hasActiveMessageSelection, appendMessage, setMessageMeta, removeMessage } from "./messages.js";
 import { registerImageUiCallbacks, clearPendingImage, handleImageSelected, openImagePicker } from "./image-handler.js";
 import { registerSettingsChatCallbacks, activeRuntimeVisionCapability, showTextOnlyImageBlockedState, bindSettingsModal } from "/assets/settings-ui.js";
-import { registerChatEngineCallbacks, setSendEnabled, setComposerActivity, setComposerStatusChip, hideComposerStatusChip, setCancelEnabled, sendChat, stopGeneration, cancelCurrentWork } from "/app/chat/assets/chat-engine.js";
+import { registerChatEngineCallbacks, setSendEnabled, setComposerActivity, setComposerStatusChip, hideComposerStatusChip, setCancelEnabled, sendChat, stopGeneration, cancelCurrentWork, canSendNow, notifyNotReadyToSend } from "/app/chat/assets/chat-engine.js";
 import { switchLlamaRuntimeBundle, applyLlamaMemoryLoadingMode, applyLargeModelOverrideFromSettings, allowUnsupportedLargeModelFromWarning, capturePowerCalibrationSample, fitPowerCalibrationModel, resetPowerCalibrationModel, registerModelFromUrl, activateSelectedModel, purgeAllModels, uploadLocalModel, cancelLocalModelUpload, startModelDownload, resetRuntimeHeavy, checkForUpdate, startUpdate, showUpdateReleaseNotes, startUpdateReconnectWatch, handleModelsListClick, registerComposerActivity } from "/assets/platform-controls.js";
 import { registerAppSendEnabled } from "/assets/shell.js";
 
@@ -193,6 +193,14 @@ import { registerAppSendEnabled } from "/assets/shell.js";
         if (input) {
           input.focus({ preventScroll: true });
         }
+        return;
+      }
+
+      // Guard readiness BEFORE any destructive rollback. If nothing is in
+      // flight and the model isn't ready, the resend can't proceed — abort
+      // without truncating the conversation and keep the modal open to retry.
+      if (!appState.requestInFlight && !canSendNow()) {
+        notifyNotReadyToSend();
         return;
       }
 

@@ -7,6 +7,12 @@ ConditionPathExists=!/opt/potato/state/firstboot.done
 [Service]
 Type=oneshot
 User=root
+# Optional first-boot overrides (e.g. POTATO_HOSTNAME_SUFFIX_FROM_MAC=1),
+# dropped on the FAT boot partition so they can be set from any computer
+# before first boot. Leading "-" makes each file optional. systemd parses
+# KEY=VALUE only — no shell execution.
+EnvironmentFile=-/boot/firmware/potato-firstboot.env
+EnvironmentFile=-/boot/potato-firstboot.env
 ExecStart=/opt/potato/bin/firstboot.sh
 RemainAfterExit=yes
 
