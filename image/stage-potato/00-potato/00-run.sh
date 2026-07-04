@@ -8,6 +8,7 @@ chmod 0755 "${ROOTFS_DIR}/opt" "${ROOTFS_DIR}/opt/potato" "${ROOTFS_DIR}/opt/pot
 
 chmod +x "${ROOTFS_DIR}"/opt/potato/bin/*.sh
 chmod +x "${ROOTFS_DIR}/opt/potato/bin/potatoctl"
+chmod +x "${ROOTFS_DIR}/opt/potato/bin/potato-web-shell"
 # Expose the management CLI on PATH (/usr/local/bin) so `potatoctl` works out of
 # the box. Runtime-valid absolute target, not a pi-gen build path.
 ln -sf /opt/potato/bin/potatoctl "${ROOTFS_DIR}/usr/local/bin/potatoctl"
@@ -76,7 +77,7 @@ SUDOERS
 chmod 0440 /etc/sudoers.d/potato-runtime-reset
 
 cat > /etc/sudoers.d/potato-terminal <<'SUDOERS'
-potato ALL=(pi) NOPASSWD: ALL
+potato ALL=(pi) NOPASSWD: /opt/potato/bin/potato-web-shell
 SUDOERS
 chmod 0440 /etc/sudoers.d/potato-terminal
 

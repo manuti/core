@@ -222,6 +222,7 @@ run_sudo install -m 0644 "${REPO_ROOT}/requirements.txt" "${TARGET_ROOT}/core/re
 
 run_sudo chmod +x "${TARGET_ROOT}"/bin/*.sh
 run_sudo chmod +x "${TARGET_ROOT}/bin/potatoctl"
+run_sudo chmod +x "${TARGET_ROOT}/bin/potato-web-shell"
 # Expose the management CLI on PATH so `potatoctl` works out of the box for any
 # user (/usr/local/bin is on the default PATH), no manual ~/.bashrc edits.
 run_sudo ln -sf "${TARGET_ROOT}/bin/potatoctl" /usr/local/bin/potatoctl
@@ -313,7 +314,7 @@ rm -f "${sudoers_tmp}"
 
 sudoers_terminal_tmp="$(mktemp)"
 cat > "${sudoers_terminal_tmp}" <<'SUDOERS'
-potato ALL=(pi) NOPASSWD: ALL
+potato ALL=(pi) NOPASSWD: /opt/potato/bin/potato-web-shell
 SUDOERS
 run_sudo install -m 0440 "${sudoers_terminal_tmp}" /etc/sudoers.d/potato-terminal
 rm -f "${sudoers_terminal_tmp}"

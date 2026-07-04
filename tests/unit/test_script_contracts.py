@@ -157,6 +157,21 @@ def test_install_script_uses_reference_llama_bundle_sync():
     assert "chmod 0755 /opt" in script
 
 
+def test_terminal_sudoers_is_scoped_to_the_restricted_web_shell():
+    """The web terminal's sudoers grant must be limited to launching
+    bin/potato-web-shell — never `(pi) NOPASSWD: ALL`."""
+    install = Path("bin/install_dev.sh").read_text(encoding="utf-8")
+    image = Path("image/stage-potato/00-potato/00-run.sh").read_text(encoding="utf-8")
+
+    scoped = "potato ALL=(pi) NOPASSWD: /opt/potato/bin/potato-web-shell"
+    for name, script in (("install_dev.sh", install), ("00-run.sh", image)):
+        assert scoped in script, f"{name} must scope the terminal sudoers rule"
+        assert "potato ALL=(pi) NOPASSWD: ALL" not in script, (
+            f"{name} must not grant the terminal user unrestricted sudo"
+        )
+        assert "potato-web-shell" in script
+
+
 def test_install_script_exposes_potatoctl_on_path():
     """potatoctl must be runnable out of the box: executable + symlinked onto
     the default PATH via /usr/local/bin."""

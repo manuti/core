@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
+
+# TestClient talks to the app as http://testserver; allow that Host through the
+# trust-boundary middleware. Must be set before create_app captures the env.
+os.environ.setdefault("POTATO_ALLOWED_HOSTS", "testserver")
 
 import pytest
 from fastapi.testclient import TestClient

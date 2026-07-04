@@ -1,12 +1,16 @@
 """Web terminal — WebSocket endpoint backed by a real PTY session.
 
-Security model: the terminal shares Potato OS's existing unauthenticated LAN
-trust model.  There is no user login or session auth — the same as chat,
-settings, model management, and SSH (pi:raspberry).  The per-boot token and
-Origin check guard against cross-site WebSocket hijacking and act as a light
-"page-loaded" speed bump, but they do not constitute real authorization against
-a determined LAN client (the token is published in the HTML served by GET /).
-App-wide authentication is tracked separately.
+Security model: the terminal shares Potato OS's unauthenticated LAN trust model
+(no login — same as chat, settings, model management). It is deliberately NOT a
+general shell:
+
+* It runs the **restricted** ``bin/potato-web-shell`` (a small diagnostic-command
+  allowlist), launched via a narrowly-scoped sudoers rule that only permits that
+  one wrapper — not ``(pi) NOPASSWD: ALL``. A full shell is available over SSH.
+* The per-boot token + Origin check are a "page-loaded" speed bump against
+  cross-site WebSocket hijacking. Real anti-rebinding protection comes from the
+  ``Host`` allowlist in ``core/security.py`` (``HostGuardMiddleware``), which
+  rejects rebound Hosts before this handler runs.
 """
 
 from __future__ import annotations
@@ -203,27 +207,30 @@ async def terminal_websocket(websocket: WebSocket) -> None:
     await websocket.accept()
     session_id = f"term_{uuid.uuid4().hex[:12]}"
 
-    # Spawn a login shell as the configured user (default: pi for sudo access).
-    # Uses `sudo -u <user> -i` with a NOPASSWD sudoers rule installed by
-    # install_dev.sh / the SD card image build.  Falls back to the service
-    # user's own shell when sudo isn't available (dev machines, tests).
+    # Spawn the RESTRICTED web shell as the configured user (default: pi). This
+    # is intentionally NOT a general login shell — the web terminal is
+    # unauthenticated on the LAN, so it runs a narrow allowlist of diagnostic
+    # commands (bin/potato-web-shell) via a scoped sudoers rule that only permits
+    # launching that one wrapper. Falls back to the service user's own shell when
+    # sudo isn't configured (dev machines, tests).
     terminal_user = os.environ.get("POTATO_TERMINAL_USER", "pi")
+    web_shell = os.environ.get("POTATO_WEB_SHELL", "/opt/potato/bin/potato-web-shell")
     pid, master_fd = pty.fork()
 
     if pid == 0:
-        # Child process — try sudo -n (non-interactive, never prompts for password)
-        # to get a login shell as the target user.  Pre-probe with `true` to avoid
-        # a dead PTY if the sudoers rule isn't installed (dev machines, CI).
+        # Child process. Probe with `sudo -n -l` (list only, never runs anything)
+        # to check the scoped rule permits the wrapper as the target user; only
+        # then exec it. Avoids a dead PTY when the sudoers rule isn't installed.
         import subprocess
 
         if terminal_user != os.environ.get("USER", ""):
             probe = subprocess.call(
-                ["sudo", "-n", "-u", terminal_user, "true"],
+                ["sudo", "-n", "-l", "-u", terminal_user, web_shell],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
             if probe == 0:
-                os.execvp("sudo", ["sudo", "-n", "-u", terminal_user, "-i"])
+                os.execvp("sudo", ["sudo", "-n", "-u", terminal_user, web_shell])
         # Fallback — run own shell (dev machines, or sudo not configured)
         shell = os.environ.get("SHELL", "/bin/bash")
         os.execvp(shell, [shell, "-l"])

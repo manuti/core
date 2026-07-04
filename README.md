@@ -133,12 +133,18 @@ GET  http://potato.local/status               # full system status
 Beyond these, the portal drives a large `POST /internal/*` admin surface
 (model download/upload/delete/purge, runtime switch/reset, settings, OTA
 update) and a `GET /logs` stream, plus a **web terminal** at `WS /ws/terminal`
-that opens an interactive shell on the device.
+that opens a *restricted* diagnostic shell (a small command allowlist — use SSH
+for a full shell).
 
-> **Security note.** None of these endpoints — including the web terminal — are
-> authenticated. Potato OS assumes a trusted LAN: anyone who can reach
-> `potato.local` can manage models, restart the runtime, read logs, and open a
-> shell. Do not expose the portal to untrusted networks or the internet.
+> **Security note.** These endpoints have no user login: Potato OS assumes a
+> trusted LAN, so anyone who can reach `potato.local` can manage models, restart
+> the runtime, and read logs. It does defend the browser trust boundary — a
+> `Host` allowlist blocks DNS-rebinding, `/internal/*` mutations require a
+> same-origin header (CSRF), and the web terminal is a restricted shell rather
+> than root — but it is **not** hardened against a malicious device already on
+> your LAN. Don't expose the portal to untrusted networks or the internet. To
+> reach it through a custom hostname or public address, set
+> `POTATO_ALLOWED_HOSTS` (comma-separated) so the `Host` guard accepts it.
 
 ---
 

@@ -1953,6 +1953,14 @@ def create_app(runtime: RuntimeConfig | None = None, enable_orchestrator: bool |
         from __version__ import __version__ as _app_version  # type: ignore[no-redef]
 
     app = FastAPI(title="Potato Web", version=_app_version, lifespan=_lifespan)
+    # Trust-boundary middleware (see core/security.py). Added last so it runs
+    # OUTERMOST — Host is validated, then the CSRF header, before any route.
+    try:
+        from core.security import HostGuardMiddleware, CsrfHeaderMiddleware
+    except ModuleNotFoundError:  # installed layout without the core. prefix
+        from security import HostGuardMiddleware, CsrfHeaderMiddleware  # type: ignore[no-redef]
+    app.add_middleware(CsrfHeaderMiddleware)
+    app.add_middleware(HostGuardMiddleware)
     app.mount("/assets", StaticFiles(directory=str(WEB_ASSETS_DIR)), name="assets")
     app.state.runtime = runtime or RuntimeConfig.from_env()
     app.state.llama_process = None

@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+"""Restricted shell for the Potato OS web terminal.
+
+The web terminal is unauthenticated on the LAN, so it must not be a general
+root-capable shell. This wrapper runs a small allowlist of read-only /
+diagnostic commands and refuses everything else, pointing the user at SSH for
+anything more. Commands are executed via argv (never a shell), so metacharacters
+(`;`, `|`, `$()`, backticks) are literal arguments and cannot chain or escape.
+
+Launched as the `pi` user by the web terminal via a narrowly-scoped sudoers rule
+(`potato ALL=(pi) NOPASSWD: /opt/potato/bin/potato-web-shell`). A real shell is
+still available over SSH.
+"""
+
+from __future__ import annotations
+
+import shlex
+import shutil
+import subprocess
+import sys
+
+# Short, deliberately read-only/diagnostic allowlist. Excludes shells, editors,
+# pagers (less/more/man), sudo/su, and anything with a shell-escape or exec
+# feature (find, awk, sed, xargs, vi, …).
+ALLOWED = [
+    "pwd", "whoami", "id", "date", "uptime", "uname", "hostname",
+    "ls", "cat", "head", "tail", "df", "free", "ps", "ip",
+    "vcgencmd", "potatoctl", "echo", "clear", "top",
+]
+
+DENY_MESSAGE = "Not allowed. Try in a SSH session instead of web terminal."
+
+_EXTRA_PATHS = ["/opt/potato/bin"]  # for potatoctl
+
+
+def _resolve_allowed() -> dict[str, str]:
+    import os
+
+    path = os.environ.get("PATH", "")
+    search = path + ":" + ":".join(_EXTRA_PATHS)
+    resolved: dict[str, str] = {}
+    for name in ALLOWED:
+        found = shutil.which(name, path=search)
+        if found:
+            resolved[name] = found
+    return resolved
+
+
+def main() -> int:
+    resolved = _resolve_allowed()
+    allowed_display = " ".join(sorted(resolved))
+    print("Potato OS restricted web terminal.")
+    print(f"Allowed commands: {allowed_display}")
+    print("Type 'exit' to close. For a full shell, use SSH.\n")
+
+    while True:
+        try:
+            line = input("potato-web> ")
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return 0
+
+        line = line.strip()
+        if not line:
+            continue
+        if line in ("exit", "quit", "logout"):
+            return 0
+
+        try:
+            tokens = shlex.split(line)
+        except ValueError:
+            print(DENY_MESSAGE)
+            continue
+        if not tokens:
+            continue
+
+        cmd = tokens[0]
+        target = resolved.get(cmd)
+        if target is None:
+            print(DENY_MESSAGE)
+            continue
+
+        try:
+            subprocess.run([target, *tokens[1:]])
+        except KeyboardInterrupt:
+            print()
+        except OSError as exc:
+            print(f"Command failed: {exc}")
+
+    # unreachable
+
+
+if __name__ == "__main__":
+    sys.exit(main())
