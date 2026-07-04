@@ -583,7 +583,7 @@ test("runtime dropdown includes litert when available and compatible", async ({ 
 
 // ── Memory pressure diagnostics tests ─────────────────────────────────
 
-test("memory row shows RAM used as total minus free", async ({ page }) => {
+test("memory row shows RAM used as total minus available", async ({ page }) => {
   await page.route("**/status", async (route) => {
     await route.fulfill({
       status: 200,
@@ -613,9 +613,11 @@ test("memory row shows RAM used as total minus free", async ({ page }) => {
   });
   await page.goto("/");
   await waitForStatusApplied(page);
-  // RAM used = total - free = 8.45 GB - 284 MB ≈ 8.17 GB (97%)
-  await expect(page.locator("#runtimeDetailMemoryValue")).toContainText("8.17 GB");
-  await expect(page.locator("#runtimeDetailMemoryValue")).toContainText("97%");
+  // RAM used = total - available = 8.45 GB - 6.12 GB ≈ 2.33 GB (28%). The row
+  // reports "used" from memory_available_bytes (reclaimable cache counts as
+  // free), not memory_free_bytes — see runtime-ui.js.
+  await expect(page.locator("#runtimeDetailMemoryValue")).toContainText("2.33 GB");
+  await expect(page.locator("#runtimeDetailMemoryValue")).toContainText("28%");
   await expect(page.locator("#runtimeDetailMemoryValue")).toContainText("8.45 GB");
 });
 
