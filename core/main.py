@@ -78,6 +78,7 @@ try:
         detect_post_update_state,
         download_release_tarball,
         extract_tarball,
+        verify_tarball_checksum,
         apply_staged_update,
         is_update_safe,
         mark_first_boot_update_done,
@@ -204,6 +205,7 @@ except ModuleNotFoundError:
         detect_post_update_state,
         download_release_tarball,
         extract_tarball,
+        verify_tarball_checksum,
         apply_staged_update,
         is_update_safe,
         mark_first_boot_update_done,
@@ -1058,6 +1060,18 @@ async def run_update(
             )
 
         await download_release_tarball(runtime, tarball_url, tarball_dest, on_progress=_on_progress)
+
+        # Verify the tarball against its published .sha256 sidecar BEFORE
+        # extracting/applying. Fail-closed: an unverifiable or tampered tarball
+        # is never staged. The sidecar is a sibling release asset.
+        write_execution_state(
+            runtime,
+            execution_state="staging",
+            phase="verifying",
+            percent=0,
+            target_version=target_version,
+        )
+        await verify_tarball_checksum(tarball_dest, tarball_url + ".sha256")
 
         write_execution_state(
             runtime,

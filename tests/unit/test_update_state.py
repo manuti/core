@@ -36,6 +36,7 @@ from core.update_state import (
     read_update_state,
     signal_service_restart,
     staging_dir,
+    verify_tarball_checksum,
     write_execution_state,
 )
 
@@ -913,6 +914,65 @@ async def test_download_release_tarball_reports_progress(runtime):
 
     assert len(progress_values) > 0
     assert progress_values[-1] == 100
+
+
+@pytest.mark.anyio
+async def test_verify_tarball_checksum_accepts_matching_digest(runtime):
+    import hashlib
+
+    tarball = staging_dir(runtime) / "update.tar.gz"
+    tarball.parent.mkdir(parents=True, exist_ok=True)
+    tarball.write_bytes(b"payload-bytes")
+    digest = hashlib.sha256(b"payload-bytes").hexdigest()
+
+    with respx.mock(assert_all_called=True) as router:
+        router.get("https://example.com/update.tar.gz.sha256").mock(
+            return_value=httpx.Response(200, text=f"{digest}  update.tar.gz\n")
+        )
+        # Must not raise.
+        await verify_tarball_checksum(tarball, "https://example.com/update.tar.gz.sha256")
+
+
+@pytest.mark.anyio
+async def test_verify_tarball_checksum_rejects_mismatch(runtime):
+    tarball = staging_dir(runtime) / "update.tar.gz"
+    tarball.parent.mkdir(parents=True, exist_ok=True)
+    tarball.write_bytes(b"payload-bytes")
+
+    with respx.mock(assert_all_called=True) as router:
+        router.get("https://example.com/update.tar.gz.sha256").mock(
+            return_value=httpx.Response(200, text=f"{'0' * 64}  update.tar.gz\n")
+        )
+        with pytest.raises(ValueError, match="update_checksum_mismatch"):
+            await verify_tarball_checksum(tarball, "https://example.com/update.tar.gz.sha256")
+
+
+@pytest.mark.anyio
+async def test_verify_tarball_checksum_rejects_malformed_sidecar(runtime):
+    tarball = staging_dir(runtime) / "update.tar.gz"
+    tarball.parent.mkdir(parents=True, exist_ok=True)
+    tarball.write_bytes(b"payload-bytes")
+
+    with respx.mock(assert_all_called=True) as router:
+        router.get("https://example.com/update.tar.gz.sha256").mock(
+            return_value=httpx.Response(200, text="not-a-checksum\n")
+        )
+        with pytest.raises(ValueError, match="update_checksum_missing"):
+            await verify_tarball_checksum(tarball, "https://example.com/update.tar.gz.sha256")
+
+
+@pytest.mark.anyio
+async def test_verify_tarball_checksum_fails_closed_on_missing_sidecar(runtime):
+    tarball = staging_dir(runtime) / "update.tar.gz"
+    tarball.parent.mkdir(parents=True, exist_ok=True)
+    tarball.write_bytes(b"payload-bytes")
+
+    with respx.mock(assert_all_called=True) as router:
+        router.get("https://example.com/update.tar.gz.sha256").mock(
+            return_value=httpx.Response(404, text="Not Found")
+        )
+        with pytest.raises(httpx.HTTPStatusError):
+            await verify_tarball_checksum(tarball, "https://example.com/update.tar.gz.sha256")
 
 
 @pytest.mark.anyio

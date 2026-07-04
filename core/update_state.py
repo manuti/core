@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -369,7 +371,6 @@ async def download_release_tarball(
 
 async def extract_tarball(tarball_path: Path, dest_dir: Path) -> None:
     """Extract tarball to dest_dir in a thread."""
-    import asyncio
 
     def _extract() -> None:
         dest_dir.mkdir(parents=True, exist_ok=True)
@@ -377,6 +378,37 @@ async def extract_tarball(tarball_path: Path, dest_dir: Path) -> None:
             tf.extractall(dest_dir, filter="data")
 
     await asyncio.to_thread(_extract)
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+async def verify_tarball_checksum(tarball_path: Path, checksum_url: str) -> None:
+    """Verify a downloaded tarball against its published ``.sha256`` sidecar.
+
+    Fail-closed: any missing/malformed checksum or mismatch raises, so an
+    unverifiable or tampered tarball is never staged or applied. The sidecar is
+    ``sha256sum`` format (``<hex>  <name>``); we take the first token.
+    """
+    async with httpx.AsyncClient(
+        timeout=GITHUB_CHECK_TIMEOUT_SECONDS, follow_redirects=True
+    ) as client:
+        resp = await client.get(checksum_url)
+        resp.raise_for_status()
+        body = resp.text.strip()
+
+    expected = body.split()[0].lower() if body else ""
+    if len(expected) != 64 or any(c not in "0123456789abcdef" for c in expected):
+        raise ValueError("update_checksum_missing")
+
+    actual = (await asyncio.to_thread(_sha256_file, tarball_path)).lower()
+    if actual != expected:
+        raise ValueError("update_checksum_mismatch")
 
 
 def _find_update_root(extracted_dir: Path) -> Path:

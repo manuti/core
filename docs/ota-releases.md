@@ -47,6 +47,12 @@ The `.sha256` file contains one line in `sha256sum` format:
 
 Two-space separator between hash and filename, matching BSD/GNU `sha256sum` output.
 
+The updater **requires** this sidecar: it fetches `<tarball_url>.sha256`, takes
+the first token as the expected digest, and refuses to stage a tarball whose
+SHA-256 doesn't match. Verification is fail-closed — a missing, malformed, or
+mismatched checksum aborts the update. Every published release must include the
+`.sha256` asset (`bin/publish_ota_release.sh` generates it).
+
 ## How the updater discovers the tarball
 
 `check_for_update()` in `core/update_state.py`:
@@ -62,15 +68,16 @@ The `potato-os-` prefix prevents accidental matches against runtime tarballs (`i
 `run_update()` in `core/main.py`:
 
 1. Downloads tarball to `.update_staging/update.tar.gz`
-2. Extracts to `.update_staging/extracted/`
-3. `_find_update_root()` locates the `core/` directory (handles single-subdir layout)
-4. Backs up live `core/` and `bin/`
-5. Copies new `core/` and `bin/` over the live installation
-6. Copies `requirements.txt` to `core/requirements.txt`
-7. Sets executable bits on `bin/*.sh`
-8. Runs `pip install -r core/requirements.txt`
-9. Signals service restart via systemd
-10. On next boot, detects version change to confirm success
+2. Verifies it against `<tarball_url>.sha256` (`verify_tarball_checksum()`); aborts fail-closed on any mismatch or missing sidecar
+3. Extracts to `.update_staging/extracted/`
+4. `_find_update_root()` locates the `core/` directory (handles single-subdir layout)
+5. Backs up live `core/` and `bin/`
+6. Copies new `core/` and `bin/` over the live installation
+7. Copies `requirements.txt` to `core/requirements.txt`
+8. Sets executable bits on `bin/*.sh`
+9. Runs `pip install -r core/requirements.txt`
+10. Signals service restart via systemd
+11. On next boot, detects version change to confirm success
 
 ## Publishing
 
