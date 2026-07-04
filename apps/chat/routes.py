@@ -64,6 +64,22 @@ async def chat_completions(
     chat_repository: ChatRepositoryManager = Depends(get_chat_repository),
 ) -> Response:
     lock = request.app.state.inference_lock
+
+    # Read the request body BEFORE taking the inference lock / queue slot. The
+    # body read is the one step an attacker (or a flaky link) can stall
+    # arbitrarily — trickling bytes or sending a large image payload slowly.
+    # Holding the single inference lock across it would let a few slow clients
+    # fill the queue while no inference is running. Parsing here keeps the lock
+    # scoped to actual inference.
+    try:
+        payload = await request.json()
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON body") from exc
+    except Exception as exc:
+        if type(exc).__name__ == "ClientDisconnect":
+            return Response(status_code=499)
+        raise
+
     # Bounded queue: allow a small number of requests to wait their turn on the
     # lock instead of rejecting them outright.  `inference_queue_depth` counts
     # the in-flight request plus everyone waiting on the lock; once it reaches
@@ -108,6 +124,9 @@ async def chat_completions(
         _get_status_download_context = request.app.state.get_status_download_context
         _build_status = request.app.state.build_status
 
+        # Build status AFTER acquiring the lock: a queued request may have
+        # waited through a long stream, so readiness is re-checked at inference
+        # time rather than at arrival.
         download_active, auto_start_remaining = await _get_status_download_context(request.app, runtime_cfg)
         status_payload = await _build_status(
             runtime_cfg,
@@ -118,15 +137,6 @@ async def chat_completions(
         )
         if status_payload["state"] != "READY":
             return JSONResponse(status_code=503, content=status_payload)
-
-        try:
-            payload = await request.json()
-        except json.JSONDecodeError as exc:
-            raise HTTPException(status_code=400, detail="Invalid JSON body") from exc
-        except Exception as exc:
-            if type(exc).__name__ == "ClientDisconnect":
-                return Response(status_code=499)
-            raise
 
         payload = merge_active_model_chat_defaults(payload, runtime=runtime_cfg)
         payload = merge_chat_defaults(payload)
@@ -144,7 +154,16 @@ async def chat_completions(
                 forward_headers=headers,
             )
         except BackendProxyError as exc:
-            if runtime_cfg.chat_backend_mode == "auto" and active_backend == "llama":
+            # Only fabricate a fake response when the fake backend is explicitly
+            # enabled — mirror _resolve_backend_active, which requires
+            # allow_fake_fallback for the auto→fake transition. Otherwise a
+            # mid-request llama crash would silently return a canned answer
+            # while /status still reports backend.active="llama".
+            if (
+                runtime_cfg.chat_backend_mode == "auto"
+                and active_backend == "llama"
+                and runtime_cfg.allow_fake_fallback
+            ):
                 backend_response = await chat_repository.create_chat_completion(
                     backend="fake",
                     payload=payload,

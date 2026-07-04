@@ -469,26 +469,55 @@ async def upload_model_endpoint(
                 return JSONResponse(status_code=400, content={"uploaded": False, "reason": error_reason})
 
             tmp_path.replace(final_path)
+            # Re-read the models state fresh right before mutating it. The
+            # snapshot taken at the top of the handler is now stale — the body
+            # stream can take minutes, during which a registration, a completing
+            # background download, an activation, or a settings change may have
+            # written models.json. Writing back the old snapshot would silently
+            # revert those. (The upload lock only excludes other uploads.)
+            state = _main.ensure_models_state(runtime_cfg)
             models = state.get("models", [])
             if not isinstance(models, list):
                 error_reason = "models_state_invalid"
                 _cleanup_partial_upload()
                 return JSONResponse(status_code=500, content={"uploaded": False, "reason": error_reason})
-            existing_ids = {
-                str(item.get("id"))
-                for item in models
-                if isinstance(item, dict)
-            }
-            model_id = _unique_model_id(_slugify_id(Path(final_filename).stem), existing_ids)
-            record = {
-                "id": model_id,
-                "filename": final_filename,
-                "source_url": None,
-                "source_type": "upload",
-                "status": "ready",
-                "error": None,
-            }
-            models.append(record)
+            # ensure_models_state may auto-discover the file we just moved into
+            # place; reuse that record instead of appending a duplicate for the
+            # same filename.
+            existing_record = next(
+                (
+                    item
+                    for item in models
+                    if isinstance(item, dict) and str(item.get("filename")) == final_filename
+                ),
+                None,
+            )
+            if existing_record is not None:
+                model_id = str(existing_record.get("id") or "").strip()
+                if not model_id:
+                    existing_ids = {str(item.get("id")) for item in models if isinstance(item, dict)}
+                    model_id = _unique_model_id(_slugify_id(Path(final_filename).stem), existing_ids)
+                    existing_record["id"] = model_id
+                existing_record.update(
+                    {"source_url": None, "source_type": "upload", "status": "ready", "error": None}
+                )
+            else:
+                existing_ids = {
+                    str(item.get("id"))
+                    for item in models
+                    if isinstance(item, dict)
+                }
+                model_id = _unique_model_id(_slugify_id(Path(final_filename).stem), existing_ids)
+                models.append(
+                    {
+                        "id": model_id,
+                        "filename": final_filename,
+                        "source_url": None,
+                        "source_type": "upload",
+                        "status": "ready",
+                        "error": None,
+                    }
+                )
             state["active_model_id"] = model_id
             saved = save_models_state(runtime_cfg, state)
             runtime_cfg.model_path = final_path

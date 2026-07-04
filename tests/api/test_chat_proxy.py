@@ -512,6 +512,50 @@ def test_lock_released_on_backend_error(client, runtime, monkeypatch):
     assert not client.app.state.inference_lock.locked()
 
 
+def test_backend_connection_error_returns_502_when_fake_fallback_disabled(client, runtime, monkeypatch):
+    import httpx
+
+    monkeypatch.setattr("core.main.check_llama_health", _healthy_true)
+    runtime.model_path.write_bytes(b"gguf")
+    # Default: mode=auto but allow_fake_fallback is off.
+    assert runtime.allow_fake_fallback is False
+
+    with respx.mock(assert_all_called=True) as router:
+        router.post("http://llama.test:8080/v1/chat/completions").mock(
+            side_effect=httpx.ConnectError("connection refused"),
+        )
+        response = client.post(
+            "/v1/chat/completions",
+            json={"model": "qwen", "messages": [{"role": "user", "content": "hi"}]},
+        )
+
+    # A mid-request llama failure with fake fallback disabled must surface as
+    # 502 — never a fabricated canned answer.
+    assert response.status_code == 502
+    assert not client.app.state.inference_lock.locked()
+
+
+def test_backend_connection_error_falls_back_to_fake_when_enabled(client, runtime, monkeypatch):
+    import httpx
+
+    monkeypatch.setattr("core.main.check_llama_health", _healthy_true)
+    runtime.model_path.write_bytes(b"gguf")
+    runtime.allow_fake_fallback = True
+
+    with respx.mock() as router:
+        router.post("http://llama.test:8080/v1/chat/completions").mock(
+            side_effect=httpx.ConnectError("connection refused"),
+        )
+        response = client.post(
+            "/v1/chat/completions",
+            json={"model": "qwen", "messages": [{"role": "user", "content": "hi"}]},
+        )
+
+    # With fake fallback explicitly enabled, the same failure is absorbed.
+    assert response.status_code == 200
+    assert not client.app.state.inference_lock.locked()
+
+
 def test_chat_sets_cache_prompt_true_by_default(client, runtime, monkeypatch):
     monkeypatch.setattr("core.main.check_llama_health", _healthy_true)
     runtime.model_path.write_bytes(b"gguf")
