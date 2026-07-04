@@ -167,15 +167,11 @@
         <button id="settingsWorkspaceTabYaml" class="settings-workspace-tab" type="button" role="tab" aria-selected="false">YAML</button>
       </div>
       <div id="settingsModelWorkspace" class="settings-workspace-panel">
-        <div class="settings-workspace-grid">
-          <section class="settings-section settings-models-column">
-            <div class="settings-panel-heading">
-              <div class="settings-panel-heading-copy">
-                <h3 class="settings-section-title">Models</h3>
-                <div class="settings-section-note">A starter model (Qwen3.5-2B) downloads automatically on first start. Add more models below.</div>
-              </div>
-            </div>
-            <div class="settings-utility-card">
+        <div class="settings-workspace-stack">
+          <div id="modelsList" class="settings-model-bar"></div>
+          <details class="settings-add-model">
+            <summary>Add a model (URL or upload)</summary>
+            <div class="settings-add-model-body">
               <label class="full">Add model by URL
                 <input id="modelUrlInput" type="url" placeholder="https://.../model.gguf">
               </label>
@@ -194,18 +190,11 @@
                 <button id="cancelUploadBtn" class="ghost-btn" type="button" hidden>Cancel upload</button>
               </div>
               <div id="modelUploadStatus" class="runtime-compact full">No upload in progress.</div>
-              <details class="settings-danger-zone full">
-                <summary>Danger zone</summary>
-                <div class="settings-danger-zone-body">
-                  <p class="settings-danger-note">Bulk deletion is tucked away so the main workspace can stay focused on setup and diagnostics.</p>
-                  <button id="purgeModelsBtn" class="ghost-btn danger-btn" type="button">Delete all models</button>
-                </div>
-              </details>
+              <div class="settings-action-row full">
+                <button id="purgeModelsBtn" class="ghost-btn danger-btn" type="button">Delete all models</button>
+              </div>
             </div>
-            <div class="full settings-model-list-wrap">
-              <div id="modelsList" class="runtime-details settings-model-list"></div>
-            </div>
-          </section>
+          </details>
           <section class="settings-section settings-editor-column">
             <div class="selected-model-header">
               <div class="selected-model-header-copy">

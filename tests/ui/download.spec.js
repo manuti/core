@@ -207,10 +207,9 @@ test("surfaces failed downloads clearly and resumes them from the UI", async ({ 
   await expect(page.locator("#statusText")).toContainText("Download failed");
 
   await openSettingsModal(page);
-  const failedRow = page.locator('#modelsList .model-row[data-model-id="failed-model"]');
-  await expect(failedRow).toContainText("Failed");
-  await expect(failedRow).toContainText("Failed at");
-  await expect(failedRow.locator('button[data-action="download"]')).toHaveText("Resume download");
+  await expect(page.locator("#modelsList")).toContainText("Failed");
+  await expect(page.locator("#modelsList")).toContainText("Failed at");
+  await expect(page.locator('#modelsList button[data-action="download"]')).toHaveText("Resume download");
   await closeSettingsModal(page);
 
   await page.locator("#startDownloadBtn").click();
@@ -218,8 +217,8 @@ test("surfaces failed downloads clearly and resumes them from the UI", async ({ 
   await expect.poll(() => downloadCalls).toEqual(["failed-model"]);
   await expect(page.locator("#downloadPrompt")).toBeHidden();
   await expect(page.locator("#statusText")).toContainText("Download: 15%");
-  await expect(failedRow).toContainText("Downloading");
-  await expect(failedRow.locator('button[data-action="cancel-download"]')).toHaveText("Stop download");
+  await expect(page.locator("#modelsList")).toContainText("Downloading");
+  await expect(page.locator('#modelsList button[data-action="cancel-download"]')).toHaveText("Stop download");
 });
 
 test("insufficient storage download shows visible error message", async ({ page }) => {
@@ -288,13 +287,12 @@ test("insufficient storage download shows visible error message", async ({ page 
 
   // Model list row should show "Insufficient storage" in the status pill
   await openSettingsModal(page);
-  const modelRow = page.locator('#modelsList .model-row[data-model-id="big-model"]');
-  await expect(modelRow).toContainText("Insufficient storage");
+  await expect(page.locator("#modelsList")).toContainText("Insufficient storage");
   await closeSettingsModal(page);
 
   // Try downloading via the settings modal download button
   await openSettingsModal(page);
-  await modelRow.locator('button[data-action="download"]').click();
+  await page.locator('#modelsList button[data-action="download"]').click();
   await expect.poll(() => downloadCalls.length).toBeGreaterThan(0);
   await closeSettingsModal(page);
 

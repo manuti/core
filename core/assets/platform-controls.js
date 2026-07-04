@@ -705,17 +705,19 @@ export function handleModelsListClick(event) {
   if (!(target instanceof HTMLElement)) return;
   const action = target.dataset?.action;
   const row = target.closest(".model-row");
-  const modelId = row?.dataset?.modelId;
   const selectedModel = resolveSelectedSettingsModel(appState.latestStatus);
   const selectedModelId = String(selectedModel?.id || "");
-  const targetDiffers = Boolean(modelId) && String(modelId) !== selectedModelId;
+  // Bar action buttons aren't inside a .model-row — they target the currently
+  // selected model.
+  const modelId = row?.dataset?.modelId || selectedModelId;
+  const targetDiffers = Boolean(row?.dataset?.modelId) && String(modelId) !== selectedModelId;
   if (targetDiffers && selectedModelHasUnsavedChanges()) {
     blockModelSelectionChange();
     return;
   }
   if (!action) {
-    if (modelId) {
-      appState.selectedSettingsModelId = String(modelId);
+    if (row?.dataset?.modelId) {
+      appState.selectedSettingsModelId = String(row.dataset.modelId);
       renderSettingsWorkspace(appState.latestStatus);
     }
     return;
@@ -729,4 +731,22 @@ export function handleModelsListClick(event) {
   } else if (action === "delete") {
     deleteSelectedModel(modelId);
   }
+}
+
+// The model dropdown selects which model the editor targets. Mirrors the old
+// row-click selection, including the unsaved-changes guard.
+export function handleModelsSelectChange(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLSelectElement) || target.id !== "modelsSelect") return;
+  const modelId = String(target.value || "");
+  const selectedModel = resolveSelectedSettingsModel(appState.latestStatus);
+  const selectedModelId = String(selectedModel?.id || "");
+  if (!modelId || modelId === selectedModelId) return;
+  if (selectedModelHasUnsavedChanges()) {
+    blockModelSelectionChange();
+    target.value = selectedModelId; // revert the dropdown
+    return;
+  }
+  appState.selectedSettingsModelId = modelId;
+  renderSettingsWorkspace(appState.latestStatus);
 }

@@ -8,6 +8,7 @@ const {
   closeAdvancedSettingsModal,
   saveModelSettings,
   chooseModelSegment,
+  openAddModelPanel,
   fulfillStreamingChat,
   makeStatusPayload,
   makeMultiModelStatusPayload,
@@ -420,6 +421,7 @@ test("model upload sends file with filename header", async ({ page }) => {
   await page.goto("/");
   await waitForStatusApplied(page);
   await openSettingsModal(page);
+  await openAddModelPanel(page);
 
   await page.locator("#modelUploadInput").setInputFiles({
     name: "tiny.gguf",

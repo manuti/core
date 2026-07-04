@@ -8,6 +8,8 @@ const {
   closeAdvancedSettingsModal,
   saveModelSettings,
   chooseModelSegment,
+  selectSettingsModel,
+  openAddModelPanel,
   fulfillStreamingChat,
   makeStatusPayload,
   makeMultiModelStatusPayload,
@@ -583,7 +585,7 @@ test("model-first settings save per model, yaml can be applied, and projector do
   await expect(page.locator("#settingsModal #downloadCountdownEnabled")).toHaveCount(0);
   await expect(page.locator("#purgeModelsBtn")).toBeHidden();
 
-  await page.locator('#modelsList .model-row[data-model-id="default"]').click();
+  await selectSettingsModel(page, "default");
   await expect(page.locator("#modelName")).toHaveText(/Qwen3.5-2B-Q4_K_M.gguf/);
   await expect(page.locator("#modelCapabilitiesChips .settings-chip")).toHaveCount(3);
   await expect(page.locator("#modelCapabilitiesChips")).toContainText("Active");
@@ -594,23 +596,21 @@ test("model-first settings save per model, yaml can be applied, and projector do
   await expect.poll(() => lastProjectorDownloadModelId).toBe("default");
   await expect(page.locator("#projectorStatusText")).toContainText("mmproj-F16.gguf");
 
+  await openAddModelPanel(page);
   await page.locator("#modelUrlInput").fill("https://example.com/new-url-model.gguf");
   await page.locator("#registerModelBtn").click();
-  await expect(page.locator("#modelsList")).toContainText("new-url-model.gguf");
+  await expect(page.locator("#modelsSelect")).toContainText("new-url-model.gguf");
 
-  await page.locator('#modelsList .model-row[data-model-id="new-url-model"] button[data-action="download"]').click();
-  await expect(page.locator('#modelsList .model-row[data-model-id="new-url-model"]')).toContainText("Downloading");
-  await expect(
-    page.locator('#modelsList .model-row[data-model-id="new-url-model"] button[data-action="cancel-download"]')
-  ).toHaveText("Stop download");
-  await expect(
-    page.locator('#modelsList .model-row[data-model-id="new-url-model"] button[data-action="delete"]')
-  ).toHaveText("Cancel + delete");
+  await selectSettingsModel(page, "new-url-model");
+  await page.locator('#modelsList button[data-action="download"]').click();
+  await expect(page.locator("#modelsList")).toContainText("Downloading");
+  await expect(page.locator('#modelsList button[data-action="cancel-download"]')).toHaveText("Stop download");
+  await expect(page.locator('#modelsList button[data-action="delete"]')).toHaveText("Cancel + delete");
 
-  await page.locator('#modelsList .model-row[data-model-id="new-url-model"] button[data-action="cancel-download"]').click();
-  await expect(page.locator('#modelsList .model-row[data-model-id="new-url-model"]')).toContainText("Not Downloaded");
+  await page.locator('#modelsList button[data-action="cancel-download"]').click();
+  await expect(page.locator("#modelsList")).toContainText("Not Downloaded");
 
-  await page.locator('#modelsList .model-row[data-model-id="alt-model"]').click();
+  await selectSettingsModel(page, "alt-model");
   await expect(page.locator("#systemPrompt")).toHaveValue("Alt instructions");
   await expect(page.locator("#modelCapabilitiesChips")).toContainText("Inactive");
   await expect(page.locator("#modelCapabilitiesChips")).toContainText("Text only");
@@ -628,7 +628,8 @@ test("model-first settings save per model, yaml can be applied, and projector do
   await saveModelSettings(page);
   expect(savedPayloads.at(-1)?.settings?.chat?.stream).toBe(false);
 
-  await page.locator('#modelsList .model-row[data-model-id="alt-model"] button[data-action="activate"]').click();
+  await selectSettingsModel(page, "alt-model");
+  await page.locator('#modelsList button[data-action="activate"]').click();
   await expect(page.locator("#modelName")).toHaveText(/Alt-Funny-Model.gguf/);
 
   await page.locator("#settingsWorkspaceTabYaml").click();
@@ -672,8 +673,9 @@ test("model-first settings save per model, yaml can be applied, and projector do
   await expect(page.locator("#legacySettingsRuntimeSection")).toBeVisible();
   await closeAdvancedSettingsModal(page);
 
-  await page.locator('#modelsList .model-row[data-model-id="new-url-model"] button[data-action="delete"]').click();
-  await expect(page.locator('#modelsList .model-row[data-model-id="new-url-model"]')).toHaveCount(0);
+  await selectSettingsModel(page, "new-url-model");
+  await page.locator('#modelsList button[data-action="delete"]').click();
+  await expect(page.locator('#modelsSelect option[value="new-url-model"]')).toHaveCount(0);
 });
 
 test("model settings block cross-model actions until edits are saved or discarded", async ({ page }) => {
@@ -825,23 +827,22 @@ test("model settings block cross-model actions until edits are saved or discarde
   await waitUntilReady(page);
   await openSettingsModal(page);
 
-  await page.locator('#modelsList .model-row[data-model-id="default"]').click();
+  await selectSettingsModel(page, "default");
   await expect(page.locator("#modelName")).toHaveText(/Qwen3.5-2B-Q4_K_M.gguf/);
   await page.locator("#systemPrompt").fill("Unsaved default draft");
 
-  await page.locator('#modelsList .model-row[data-model-id="alt-model"]').click();
+  // Switching models via the dropdown is blocked while there are unsaved edits —
+  // the editor stays on the current model and nothing is activated.
+  await selectSettingsModel(page, "alt-model");
   await expect(page.locator("#modelName")).toHaveText(/Qwen3.5-2B-Q4_K_M.gguf/);
   await expect(page.locator("#systemPrompt")).toHaveValue("Unsaved default draft");
-  await expect(page.locator("#modelSettingsStatus")).toContainText(/save or discard/i);
-
-  await page.locator('#modelsList .model-row[data-model-id="alt-model"] button[data-action="activate"]').click();
   await expect(page.locator("#modelSettingsStatus")).toContainText(/save or discard/i);
   expect(activateCalls).toEqual([]);
 
   await page.locator("#discardModelSettingsBtn").click();
   await expect(page.locator("#modelSettingsStatus")).toContainText(/discarded|reverted/i);
 
-  await page.locator('#modelsList .model-row[data-model-id="alt-model"]').click();
+  await selectSettingsModel(page, "alt-model");
   await expect(page.locator("#modelName")).toHaveText(/Alt-Funny-Model.gguf/);
   await expect(page.locator("#systemPrompt")).toHaveValue("Alt instructions");
 
@@ -999,6 +1000,7 @@ test("add model by URL shows inline validation feedback", async ({ page }) => {
 
   await waitUntilReady(page);
   await openSettingsModal(page);
+  await openAddModelPanel(page);
 
   await page.locator("#modelUrlInput").fill("http://example.com/bad-model.gguf");
   await page.locator("#registerModelBtn").click();
@@ -1064,7 +1066,7 @@ test("litert-backed vision model shows Vision chip and enables image upload", as
   await waitUntilReady(page);
   await openSettingsModal(page);
 
-  await page.locator('#modelsList .model-row[data-model-id="gemma4-litert"]').click();
+  await selectSettingsModel(page, "gemma4-litert");
   await expect(page.locator("#modelCapabilitiesChips")).toContainText("Vision");
   await expect(page.locator("#modelCapabilitiesChips")).not.toContainText("Text only");
 
@@ -1129,7 +1131,7 @@ test("litert-backed text-only model shows Text only chip and disables image uplo
   await waitUntilReady(page);
   await openSettingsModal(page);
 
-  await page.locator('#modelsList .model-row[data-model-id="gemma4-litert"]').click();
+  await selectSettingsModel(page, "gemma4-litert");
   await expect(page.locator("#modelCapabilitiesChips")).toContainText("Text only");
   await expect(page.locator("#modelCapabilitiesChips")).not.toContainText("Vision");
 

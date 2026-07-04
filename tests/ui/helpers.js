@@ -45,6 +45,16 @@ async function chooseModelSegment(page, fieldId, value) {
   await expect(page.locator(`#${fieldId}`)).toHaveValue(String(value));
 }
 
+// The settings model list is a dropdown selector — pick a model to edit / act on.
+async function selectSettingsModel(page, modelId) {
+  await page.selectOption("#modelsSelect", modelId);
+}
+
+// The Add-model / Upload / Delete-all controls live in a collapsed <details>.
+async function openAddModelPanel(page) {
+  await page.locator(".settings-add-model").evaluate((el) => { el.open = true; });
+}
+
 async function fulfillStreamingChat(route, { content = "", timings = null, finishReason = "stop" } = {}) {
   const events = [];
   if (content) {
@@ -245,6 +255,8 @@ module.exports = {
   closeAdvancedSettingsModal,
   saveModelSettings,
   chooseModelSegment,
+  selectSettingsModel,
+  openAddModelPanel,
   fulfillStreamingChat,
   makeStatusPayload,
   makeMultiModelStatusPayload,

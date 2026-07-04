@@ -680,109 +680,112 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       if (models.length === 0) {
         const empty = document.createElement("div");
         empty.className = "runtime-compact";
-        empty.textContent = "No models registered yet.";
+        empty.textContent = "No models registered yet. Add one below.";
         container.appendChild(empty);
         return;
       }
 
-      for (const model of models) {
-        const row = document.createElement("div");
-        row.className = "model-row";
-        row.dataset.modelId = String(model?.id || "");
-        if (String(model?.id || "") === String(selectedModel?.id || "")) {
-          row.classList.add("selected");
-        }
+      const selectedId = String(selectedModel?.id || "");
 
-        const head = document.createElement("div");
-        head.className = "model-row-head";
-        const name = document.createElement("span");
-        name.className = "model-row-name";
-        name.textContent = String(model?.filename || "unknown.gguf");
-        const status = document.createElement("span");
-        status.className = "model-status-pill";
-        status.textContent = model?.status === "failed" && model?.error === "insufficient_storage"
+      // Compact selector bar: a dropdown of every model, plus the selected
+      // model's status chips and its actions. Replaces the old card stack so
+      // the whole Settings panel fits without scrolling.
+      const label = document.createElement("span");
+      label.className = "settings-model-bar-label";
+      label.textContent = "Model";
+
+      const selectWrap = document.createElement("span");
+      selectWrap.className = "settings-model-select-wrap";
+      const select = document.createElement("select");
+      select.id = "modelsSelect";
+      select.className = "settings-model-select";
+      select.setAttribute("aria-label", "Select model to edit");
+      for (const model of models) {
+        const option = document.createElement("option");
+        option.value = String(model?.id || "");
+        const statusLabel = model?.status === "failed" && model?.error === "insufficient_storage"
           ? "Insufficient storage"
           : formatModelStatusLabel(model?.status);
-        head.appendChild(name);
-        head.appendChild(status);
+        const activeMark = model?.is_active === true ? " · Active" : "";
+        option.textContent = `${String(model?.filename || "unknown.gguf")}  ·  ${statusLabel}${activeMark}`;
+        if (String(model?.id || "") === selectedId) option.selected = true;
+        select.appendChild(option);
+      }
+      selectWrap.appendChild(select);
 
-        const meta = document.createElement("div");
-        meta.className = "model-row-meta";
-        const metaBits = [];
-        if (model?.is_active === true) metaBits.push("Active");
-        if (model?.capabilities?.vision) metaBits.push("Vision");
-        if (String(model?.source_type || "") === "url") metaBits.push("URL");
-        for (const bit of metaBits) {
-          const chip = document.createElement("span");
-          chip.className = "model-mini-chip";
-          chip.textContent = String(bit);
-          meta.appendChild(chip);
-        }
-        const sizeBytes = Number(model?.storage?.size_bytes || 0);
-        if (sizeBytes > 0) {
-          const sizeChip = document.createElement("span");
-          sizeChip.className = "model-mini-chip model-size-chip";
-          sizeChip.textContent = formatBytes(sizeBytes);
-          meta.appendChild(sizeChip);
-        }
+      const chips = document.createElement("span");
+      chips.className = "settings-model-bar-chips";
+      const chipBits = [];
+      if (selectedModel?.is_active === true) chipBits.push(["Active", "model-chip-active"]);
+      chipBits.push([
+        selectedModel?.status === "failed" && selectedModel?.error === "insufficient_storage"
+          ? "Insufficient storage"
+          : formatModelStatusLabel(selectedModel?.status),
+        "model-chip-status",
+      ]);
+      if (selectedModel?.capabilities?.vision) chipBits.push(["Vision", ""]);
+      if (String(selectedModel?.source_type || "") === "url") chipBits.push(["URL", ""]);
+      const selSize = Number(selectedModel?.storage?.size_bytes || 0);
+      if (selSize > 0) chipBits.push([formatBytes(selSize), "model-size-chip"]);
+      for (const [text, cls] of chipBits) {
+        const chip = document.createElement("span");
+        chip.className = `model-mini-chip${cls ? " " + cls : ""}`;
+        chip.textContent = String(text);
+        chips.appendChild(chip);
+      }
 
-        const actions = document.createElement("div");
-        actions.className = "model-row-actions";
-        if (model?.status === "downloading") {
-          const cancelBtn = document.createElement("button");
-          cancelBtn.type = "button";
-          cancelBtn.className = "ghost-btn";
-          cancelBtn.dataset.action = "cancel-download";
-          cancelBtn.textContent = "Stop download";
-          cancelBtn.title = "Stop the active download for this model";
-          actions.appendChild(cancelBtn);
-        } else if (model?.status !== "ready" && model?.source_type === "url") {
-          const downloadBtn = document.createElement("button");
-          downloadBtn.type = "button";
-          downloadBtn.className = "ghost-btn";
-          downloadBtn.dataset.action = "download";
-          downloadBtn.textContent = model?.status === "failed" ? "Resume download" : "Download";
-          actions.appendChild(downloadBtn);
-        }
-        if (model?.is_active !== true && model?.status === "ready") {
-          const activeBtn = document.createElement("button");
-          activeBtn.type = "button";
-          activeBtn.className = "ghost-btn";
-          activeBtn.dataset.action = "activate";
-          activeBtn.textContent = "Set active";
-          actions.appendChild(activeBtn);
-        }
-        if (String(model?.id || "").length > 0) {
-          const deleteBtn = document.createElement("button");
-          deleteBtn.type = "button";
-          deleteBtn.className = "ghost-btn danger-btn";
-          deleteBtn.dataset.action = "delete";
-          deleteBtn.textContent = model?.status === "downloading" ? "Cancel + delete" : "Delete model";
-          actions.appendChild(deleteBtn);
-        }
-        if (model?.is_active === true) {
-          const activeLabel = document.createElement("span");
-          activeLabel.className = "runtime-compact";
-          activeLabel.textContent = "Active model";
-          actions.appendChild(activeLabel);
-        }
-        if (model?.status === "downloading") {
-          const progress = document.createElement("span");
-          progress.className = "runtime-compact";
-          progress.textContent = `Downloading ${Number(model?.percent || 0)}% (${formatBytes(model?.bytes_downloaded)} / ${formatBytes(model?.bytes_total)})`;
-          actions.appendChild(progress);
-        } else if (model?.status === "failed" && Number(model?.bytes_total || 0) > 0) {
-          const progress = document.createElement("span");
-          progress.className = "runtime-compact";
-          progress.textContent = `Failed at ${formatBytes(model?.bytes_downloaded)} / ${formatBytes(model?.bytes_total)}`;
-          actions.appendChild(progress);
-        }
-        row.appendChild(head);
-        if (meta.childElementCount > 0) {
-          row.appendChild(meta);
-        }
-        row.appendChild(actions);
-        container.appendChild(row);
+      // Actions target the SELECTED model (handleModelsListClick falls back to
+      // the selected model's id when a button isn't inside a .model-row).
+      const actions = document.createElement("span");
+      actions.className = "settings-model-bar-actions";
+      if (selectedModel?.status === "downloading") {
+        const cancelBtn = document.createElement("button");
+        cancelBtn.type = "button";
+        cancelBtn.className = "ghost-btn";
+        cancelBtn.dataset.action = "cancel-download";
+        cancelBtn.textContent = "Stop download";
+        actions.appendChild(cancelBtn);
+      } else if (selectedModel?.status !== "ready" && selectedModel?.source_type === "url") {
+        const downloadBtn = document.createElement("button");
+        downloadBtn.type = "button";
+        downloadBtn.className = "ghost-btn";
+        downloadBtn.dataset.action = "download";
+        downloadBtn.textContent = selectedModel?.status === "failed" ? "Resume download" : "Download";
+        actions.appendChild(downloadBtn);
+      }
+      if (selectedModel?.is_active !== true && selectedModel?.status === "ready") {
+        const activeBtn = document.createElement("button");
+        activeBtn.type = "button";
+        activeBtn.className = "ghost-btn";
+        activeBtn.dataset.action = "activate";
+        activeBtn.textContent = "Set active";
+        actions.appendChild(activeBtn);
+      }
+      if (selectedId.length > 0) {
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "ghost-btn danger-btn";
+        deleteBtn.dataset.action = "delete";
+        deleteBtn.textContent = selectedModel?.status === "downloading" ? "Cancel + delete" : "Delete";
+        actions.appendChild(deleteBtn);
+      }
+
+      container.appendChild(label);
+      container.appendChild(selectWrap);
+      container.appendChild(chips);
+      container.appendChild(actions);
+
+      // Progress / failure detail on its own line under the bar.
+      if (selectedModel?.status === "downloading") {
+        const progress = document.createElement("div");
+        progress.className = "runtime-compact settings-model-bar-progress";
+        progress.textContent = `Downloading ${Number(selectedModel?.percent || 0)}% (${formatBytes(selectedModel?.bytes_downloaded)} / ${formatBytes(selectedModel?.bytes_total)})`;
+        container.appendChild(progress);
+      } else if (selectedModel?.status === "failed" && Number(selectedModel?.bytes_total || 0) > 0) {
+        const progress = document.createElement("div");
+        progress.className = "runtime-compact settings-model-bar-progress";
+        progress.textContent = `Failed at ${formatBytes(selectedModel?.bytes_downloaded)} / ${formatBytes(selectedModel?.bytes_total)}`;
+        container.appendChild(progress);
       }
     }
 
