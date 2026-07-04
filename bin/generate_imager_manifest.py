@@ -62,7 +62,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Generate a Raspberry Pi Imager manifest for a built Potato OS image. "
-            "Manifest is intentionally restricted to Raspberry Pi 5 (pi5-64bit)."
+            "Manifest targets Raspberry Pi 5 (pi5-64bit) and Raspberry Pi 4 (pi4-64bit)."
         )
     )
     parser.add_argument("--image", required=True, help="Path to local image (.img or .img.xz).")

@@ -4,7 +4,7 @@ Step-by-step guide for flashing Potato OS to a microSD card using Raspberry Pi I
 
 ## What you need
 
-- Raspberry Pi 5 (8 GB or 16 GB)
+- Raspberry Pi 5 (8 GB or 16 GB) — recommended — or Raspberry Pi 4 (8 GB); Pi 4 works but runs roughly 4× slower
 - **Active cooling** — an Active Cooler or fan HAT is strongly recommended (see note below)
 - microSD card (16 GB minimum)
 - Power supply (20W USB-C minimum, 27W recommended if using a USB SSD)
@@ -44,13 +44,13 @@ Click **Apply & Restart**.
 
 ### 3. Select your device
 
-Imager restarts and shows **"Using data from github.com"** in the title bar. Only Raspberry Pi 5 is listed since that is what Potato OS supports. Select it and click **Next**.
+Imager restarts and shows **"Using data from github.com"** in the title bar. Potato OS supports Raspberry Pi 5 and Raspberry Pi 4 — select your device and click **Next**.
 
 <img src="assets/install_steps/04-imager-restarted.jpg" alt="Imager restarted with Potato OS data" width="680">
 
 ### 4. Select Potato OS
 
-Choose **Potato OS (lite, Raspberry Pi 5)** — it shows as recommended. Click **Next**.
+Choose the **Potato OS (lite)** entry — it shows as recommended. Click **Next**.
 
 <img src="assets/install_steps/05-os-selection.jpg" alt="OS selection" width="680">
 

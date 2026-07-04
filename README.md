@@ -61,8 +61,9 @@ Potato OS is an early release meant for testing and tinkering, not production us
 - Dual inference runtime — ik_llama (Pi 5 default) and upstream llama.cpp (Pi 4 default, Pi 5 fallback)
 - OpenAI-compatible API — `GET /v1/models` and `POST /v1/chat/completions`
 - `potatoctl` management CLI — health check, logs, status, restart
+- In-place OTA updates — check for and install new releases from the portal (**Check for update**), with a staged backup and automatic rollback on failure (see `docs/ota-releases.md`, `docs/recovery.md`)
 
-Updates are reflash-only for now — there is no OTA or in-place upgrade path yet.
+Reflashing is still supported (and the surest way to reset a device), but it is no longer the only upgrade path.
 
 ## Deploying changes without reflashing
 
@@ -129,6 +130,16 @@ POST http://potato.local/v1/chat/completions  # chat completions (streaming supp
 GET  http://potato.local/status               # full system status
 ```
 
+Beyond these, the portal drives a large `POST /internal/*` admin surface
+(model download/upload/delete/purge, runtime switch/reset, settings, OTA
+update) and a `GET /logs` stream, plus a **web terminal** at `WS /ws/terminal`
+that opens an interactive shell on the device.
+
+> **Security note.** None of these endpoints — including the web terminal — are
+> authenticated. Potato OS assumes a trusted LAN: anyone who can reach
+> `potato.local` can manage models, restart the runtime, read logs, and open a
+> shell. Do not expose the portal to untrusted networks or the internet.
+
 ---
 
 ## Development
@@ -139,7 +150,7 @@ Everything below is for contributors and developers.
 
 ```bash
 uv sync
-POTATO_ENABLE_ORCHESTRATOR=0 uv run uvicorn app.main:app --host 0.0.0.0 --port 1983
+POTATO_ENABLE_ORCHESTRATOR=0 uv run uvicorn core.main:app --host 0.0.0.0 --port 1983
 ```
 
 Or with Make:

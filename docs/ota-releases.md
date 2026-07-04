@@ -8,8 +8,8 @@ Each OTA-enabled release publishes two assets:
 
 | Asset | Pattern | Example |
 |-------|---------|---------|
-| App tarball | `potato-os-<version>.tar.gz` | `potato-os-0.5.0.tar.gz` |
-| Checksum | `potato-os-<version>.tar.gz.sha256` | `potato-os-0.5.0.tar.gz.sha256` |
+| App tarball | `potato-os-<version>.tar.gz` | `potato-os-0.7.2.tar.gz` |
+| Checksum | `potato-os-<version>.tar.gz.sha256` | `potato-os-0.7.2.tar.gz.sha256` |
 
 These assets live on the `v<version>` GitHub Release alongside any image assets. Either can be published independently.
 
@@ -18,7 +18,7 @@ These assets live on the `v<version>` GitHub Release alongside any image assets.
 The tarball contains a single top-level directory with `core/`, `bin/`, and `requirements.txt`:
 
 ```
-potato-os-0.5.0/
+potato-os-0.7.2/
   core/              # Python application code + frontend assets
   bin/              # Operational scripts (run.sh, install_dev.sh, etc.)
   requirements.txt  # Python dependencies
@@ -76,10 +76,10 @@ The `potato-os-` prefix prevents accidental matches against runtime tarballs (`i
 
 ```bash
 # Dry run — build tarball locally without publishing
-./bin/publish_ota_release.sh --version v0.5.0 --dry-run
+./bin/publish_ota_release.sh --version v0.7.2 --dry-run
 
 # Publish — attach to existing release or create new one
-./bin/publish_ota_release.sh --version v0.5.0
+./bin/publish_ota_release.sh --version v0.7.2
 ```
 
 If the `v<version>` release already exists (e.g., image was published first), the script uploads the OTA assets with `--clobber`. If it doesn't exist, the script creates the release.
