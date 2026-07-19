@@ -23,6 +23,7 @@
 
 import { appState, RUNTIME_RECONNECT_INTERVAL_MS, RUNTIME_RECONNECT_TIMEOUT_MS, RUNTIME_RECONNECT_MAX_ATTEMPTS } from "./state.js";
 import { formatBytes } from "./utils.js";
+import { t } from "./i18n.js";
 import { isLocalModelConnected, findResumableFailedModel, renderDownloadPrompt } from "./status.js";
 import { setModelUploadStatus, setLlamaRuntimeSwitchStatus, setLlamaRuntimeSwitchButtonState, setLlamaMemoryLoadingStatus, setLlamaMemoryLoadingButtonState, setLargeModelOverrideStatus, setLargeModelOverrideButtonState, setPowerCalibrationStatus, setPowerCalibrationButtonsState } from "./runtime-ui.js";
 import { setUpdateCheckInFlight, setUpdateStartInFlight, isUpdateExecutionActive, openChangelogModal } from "./update-ui.js";
@@ -50,27 +51,27 @@ export async function switchLlamaRuntimeBundle() {
   const select = document.getElementById("llamaRuntimeFamilySelect");
   const family = String(select?.value || "").trim();
   if (!family) {
-    showPlatformNotice("No llama runtime selected.", { level: "warn" });
+    showPlatformNotice(t("pc.noRuntimeSelected"), { level: "warn" });
     return;
   }
   const selectedLabel = select?.selectedOptions?.[0]?.textContent || family;
   const confirmed = window.confirm(
-    `Switch llama runtime to ${selectedLabel}?\n\nThis will restart the local llama runtime process.`
+    t("pc.confirmSwitch", { label: selectedLabel })
   );
   if (!confirmed) return;
 
   appState.llamaRuntimeSwitchInFlight = true;
   setLlamaRuntimeSwitchButtonState(true);
-  setLlamaRuntimeSwitchStatus("Switching runtime...");
-  setComposerActivity("Switching llama runtime...");
+  setLlamaRuntimeSwitchStatus(t("pc.switchingRuntimeMsg"));
+  setComposerActivity(t("pc.switchingLlama"));
   try {
     const result = await platformApi.switchRuntime(family);
     if (!result.ok) {
-      showPlatformNotice(`Could not switch llama runtime (${result.error}).`, { level: "error" });
+      showPlatformNotice(t("pc.couldNotSwitch", { error: result.error }), { level: "error" });
       return;
     }
-    showPlatformNotice(`Switched llama runtime to ${result.family}.`, { level: "success" });
-    setComposerActivity("Llama runtime switched. Reconnecting...");
+    showPlatformNotice(t("pc.switchedTo", { family: result.family }), { level: "success" });
+    setComposerActivity(t("pc.switchedReconnecting"));
   } finally {
     appState.llamaRuntimeSwitchInFlight = false;
     setLlamaRuntimeSwitchButtonState(false);
@@ -84,24 +85,22 @@ export async function applyLlamaMemoryLoadingMode() {
   const mode = String(select?.value || "auto").trim() || "auto";
   const label = select?.selectedOptions?.[0]?.textContent || mode;
   const confirmed = window.confirm(
-    `Apply "${label}" and restart the llama runtime now? ` +
-    "The model will reload and chat will disconnect briefly."
+    t("pc.confirmApplyMemory", { label })
   );
   if (!confirmed) return;
 
   appState.llamaMemoryLoadingApplyInFlight = true;
   setLlamaMemoryLoadingButtonState(true);
-  setLlamaMemoryLoadingStatus(`Applying memory loading mode: ${label}...`);
+  setLlamaMemoryLoadingStatus(t("pc.applyingMemory", { label }));
   try {
     const result = await platformApi.setMemoryLoadingMode(mode);
     if (!result.ok) {
-      showPlatformNotice(`Could not update model memory loading: ${result.error}.`, { level: "error" });
-      setLlamaMemoryLoadingStatus(`Last memory loading update error: ${result.error}`);
+      showPlatformNotice(t("pc.couldNotUpdateMemory", { error: result.error }), { level: "error" });
+      setLlamaMemoryLoadingStatus(t("pc.lastMemoryErr", { error: result.error }));
       return;
     }
     showPlatformNotice(
-      `Applied model memory loading: ${result.memoryLoading?.label || mode}. ` +
-      `Runtime restart: ${result.restartReason}.`,
+      t("pc.appliedMemory", { label: result.memoryLoading?.label || mode, reason: result.restartReason }),
       { level: "success" },
     );
     await _shell.pollStatus();
@@ -119,26 +118,26 @@ export async function applyLargeModelCompatibilityOverride(enabled) {
   setLargeModelOverrideButtonState(true);
   setLargeModelOverrideStatus(
     enabled
-      ? "Applying compatibility override: try unsupported models..."
-      : "Applying compatibility override: restore warnings..."
+      ? t("pc.applyingCompatTry")
+      : t("pc.applyingCompatRestore")
   );
   try {
     const result = await platformApi.setLargeModelOverride(enabled);
     if (!result.ok) {
-      showPlatformNotice(`Could not update compatibility override (${result.error}).`, { level: "error" });
-      setLargeModelOverrideStatus(`Last compatibility override error: ${result.error}`);
+      showPlatformNotice(t("pc.couldNotUpdateCompat", { error: result.error }), { level: "error" });
+      setLargeModelOverrideStatus(t("pc.lastCompatErr", { error: result.error }));
       return;
     }
     showPlatformNotice(
       result.override?.enabled
-        ? "Enabled compatibility override. Potato will try unsupported large models."
-        : "Disabled compatibility override. Default large-model warnings are active again.",
+        ? t("pc.enabledCompat")
+        : t("pc.disabledCompat"),
       { level: "success" },
     );
     setLargeModelOverrideStatus(
       result.override?.enabled
-        ? "Compatibility override: trying unsupported large models is enabled"
-        : "Compatibility override: default warnings"
+        ? t("ru.compatOverrideOn")
+        : t("adv.compatStatus")
     );
   } finally {
     appState.largeModelOverrideApplyInFlight = false;
@@ -154,8 +153,7 @@ export async function applyLargeModelOverrideFromSettings() {
 
 export async function allowUnsupportedLargeModelFromWarning() {
   const confirmed = window.confirm(
-    "Try loading unsupported large models anyway on this device? " +
-    "This may fail or be unstable, but Potato will stop warning-blocking this attempt."
+    t("pc.confirmTryLarge")
   );
   if (!confirmed) return;
   await applyLargeModelCompatibilityOverride(true);
@@ -168,23 +166,23 @@ export async function capturePowerCalibrationSample() {
   const input = document.getElementById("powerCalibrationWallWatts");
   const wallWatts = Number(input?.value);
   if (!Number.isFinite(wallWatts) || wallWatts <= 0) {
-    showPlatformNotice("Enter a valid wall meter reading in watts before capturing a sample.", { level: "warn" });
-    setPowerCalibrationStatus("Power calibration error: invalid wall meter reading");
+    showPlatformNotice(t("pc.invalidWallReading"), { level: "warn" });
+    setPowerCalibrationStatus(t("pc.calibErrInvalid"));
     return;
   }
 
   appState.powerCalibrationActionInFlight = true;
   setPowerCalibrationButtonsState(true);
-  setPowerCalibrationStatus("Capturing power calibration sample...");
+  setPowerCalibrationStatus(t("pc.capturingSample"));
   try {
     const result = await platformApi.captureCalibrationSample(wallWatts);
     if (!result.ok) {
-      showPlatformNotice(`Could not capture power sample (${result.error}).`, { level: "error" });
-      setPowerCalibrationStatus(`Power calibration error: ${result.error}`);
+      showPlatformNotice(t("pc.errCapture", { error: result.error }), { level: "error" });
+      setPowerCalibrationStatus(t("pc.calibErr", { error: result.error }));
       return;
     }
     showPlatformNotice(
-      `Captured power calibration sample (wall ${Number(wallWatts).toFixed(2)} W vs raw ${Number(result.sample?.raw_pmic_watts || 0).toFixed(3)} W).`,
+      t("pc.capturedSample", { wall: Number(wallWatts).toFixed(2), raw: Number(result.sample?.raw_pmic_watts || 0).toFixed(3) }),
       { level: "success" },
     );
   } finally {
@@ -198,17 +196,17 @@ export async function fitPowerCalibrationModel() {
   if (appState.powerCalibrationActionInFlight) return;
   appState.powerCalibrationActionInFlight = true;
   setPowerCalibrationButtonsState(true);
-  setPowerCalibrationStatus("Computing power calibration...");
+  setPowerCalibrationStatus(t("pc.computingCalib"));
   try {
     const result = await platformApi.fitCalibrationModel();
     if (!result.ok) {
-      showPlatformNotice(`Could not compute power calibration (${result.error}).`, { level: "error" });
-      setPowerCalibrationStatus(`Power calibration error: ${result.error}`);
+      showPlatformNotice(t("pc.errCompute", { error: result.error }), { level: "error" });
+      setPowerCalibrationStatus(t("pc.calibErr", { error: result.error }));
       return;
     }
     const cal = result.calibration || {};
     showPlatformNotice(
-      `Power calibration updated (a=${Number(cal?.a || 0).toFixed(4)}, b=${Number(cal?.b || 0).toFixed(4)}, samples=${Number(cal?.sample_count || 0)}).`,
+      t("pc.calibUpdated", { a: Number(cal?.a || 0).toFixed(4), b: Number(cal?.b || 0).toFixed(4), n: Number(cal?.sample_count || 0) }),
       { level: "success" },
     );
   } finally {
@@ -221,21 +219,21 @@ export async function fitPowerCalibrationModel() {
 export async function resetPowerCalibrationModel() {
   if (appState.powerCalibrationActionInFlight) return;
   const confirmed = window.confirm(
-    "Reset power calibration to the default correction model? Saved wall-meter samples will be cleared."
+    t("pc.confirmResetCalib")
   );
   if (!confirmed) return;
 
   appState.powerCalibrationActionInFlight = true;
   setPowerCalibrationButtonsState(true);
-  setPowerCalibrationStatus("Resetting power calibration...");
+  setPowerCalibrationStatus(t("pc.resettingCalib"));
   try {
     const result = await platformApi.resetCalibration();
     if (!result.ok) {
-      showPlatformNotice(`Could not reset power calibration (${result.error}).`, { level: "error" });
-      setPowerCalibrationStatus(`Power calibration error: ${result.error}`);
+      showPlatformNotice(t("pc.errResetCalib", { error: result.error }), { level: "error" });
+      setPowerCalibrationStatus(t("pc.calibErr", { error: result.error }));
       return;
     }
-    showPlatformNotice("Power calibration reset. Using default correction again.", { level: "success" });
+    showPlatformNotice(t("pc.calibReset"), { level: "success" });
   } finally {
     appState.powerCalibrationActionInFlight = false;
     setPowerCalibrationButtonsState(false);
@@ -248,7 +246,7 @@ export async function resetPowerCalibrationModel() {
 export async function updateCountdownPreference(enabled) {
   const result = await platformApi.setDownloadCountdown(enabled);
   if (!result.ok) {
-    showPlatformNotice(`Could not update auto-download: ${result.error}`, { level: "error" });
+    showPlatformNotice(t("pc.errAutoDownload", { error: result.error }), { level: "error" });
   }
   await _shell.pollStatus();
 }
@@ -265,25 +263,25 @@ export async function registerModelFromUrl() {
   const input = document.getElementById("modelUrlInput");
   const sourceUrl = String(input?.value || "").trim();
   if (!sourceUrl) {
-    setModelUrlStatus("Enter an HTTPS model URL ending with .gguf.");
+    setModelUrlStatus(t("pc.enterUrl"));
     return;
   }
   const hfTokenInput = document.getElementById("hfTokenInput");
   const hfToken = String(hfTokenInput?.value || "").trim() || null;
   appState.modelActionInFlight = true;
-  setModelUrlStatus("Adding model URL...");
+  setModelUrlStatus(t("pc.addingUrl"));
   try {
     const result = await modelApi.registerModel(sourceUrl, hfToken);
     if (!result.ok) {
       setModelUrlStatus(result.reason
         ? formatModelUrlStatus(result.reason, result.status)
-        : `Could not add model URL: ${result.error}`);
+        : t("pc.couldNotAddUrl", { error: result.error }));
       return;
     }
     setModelUrlStatus(
       result.reason === "already_exists"
-        ? "That model URL is already registered."
-        : "Model URL added."
+        ? t("pc.urlDup")
+        : t("pc.urlAdded")
     );
     if (input) input.value = "";
   } finally {
@@ -299,13 +297,13 @@ export async function startModelDownloadForModel(modelId) {
   try {
     const result = await modelApi.downloadModel(modelId);
     if (!result.ok) {
-      showPlatformNotice(`Could not start model download (${result.error}).`, { level: "error" });
+      showPlatformNotice(t("pc.errStartDownload", { error: result.error }), { level: "error" });
       return;
     }
     if (!result.started && result.reason === "insufficient_storage") {
-      const freeInfo = result.freeBytes != null ? ` (${formatBytes(result.freeBytes)} free, ${formatBytes(result.requiredBytes)} needed)` : "";
-      showPlatformNotice(`Not enough free storage to download this model${freeInfo}. Free up space or delete unused models and try again.`, { level: "warn" });
-      setComposerActivity("Model likely too large for free storage. Delete files and retry.");
+      const freeInfo = result.freeBytes != null ? t("pc.freeInfo", { free: formatBytes(result.freeBytes), needed: formatBytes(result.requiredBytes) }) : "";
+      showPlatformNotice(t("pc.notEnoughStorage", { freeInfo }), { level: "warn" });
+      setComposerActivity(t("pc.tooLarge"));
     }
   } finally {
     appState.modelActionInFlight = false;
@@ -317,13 +315,13 @@ export async function cancelActiveModelDownload(modelId = null) {
   if (appState.modelActionInFlight) return;
   const targetModel = findModelInLatestStatus(modelId) || findModelInLatestStatus(appState.latestStatus?.download?.current_model_id);
   const targetName = String(targetModel?.filename || "this model");
-  const confirmed = window.confirm(`Stop the current download for ${targetName}?`);
+  const confirmed = window.confirm(t("pc.confirmStopDownload", { name: targetName }));
   if (!confirmed) return;
   appState.modelActionInFlight = true;
   try {
     const result = await modelApi.cancelDownload();
     if (!result.ok) {
-      showPlatformNotice(`Could not cancel model download (${result.error}).`, { level: "error" });
+      showPlatformNotice(t("pc.errCancelDownload", { error: result.error }), { level: "error" });
     }
   } finally {
     appState.modelActionInFlight = false;
@@ -338,10 +336,10 @@ export async function activateSelectedModel(modelId) {
   try {
     const result = await modelApi.activateModel(modelId);
     if (!result.ok) {
-      showPlatformNotice(`Could not activate model (${result.error}).`, { level: "error" });
+      showPlatformNotice(t("pc.errActivate", { error: result.error }), { level: "error" });
       return;
     }
-    setComposerActivity("Switching active model...");
+    setComposerActivity(t("pc.switchingActive"));
   } finally {
     appState.modelActionInFlight = false;
     await _shell.pollStatus();
@@ -355,15 +353,15 @@ export async function deleteSelectedModel(modelId) {
   const targetName = String(targetModel?.filename || "this model");
   const isDownloading = targetModel?.status === "downloading";
   const confirmMessage = isDownloading
-    ? `Cancel the download for ${targetName} and delete any partially downloaded data?`
-    : `Delete ${targetName} and remove it from the model list?`;
+    ? t("pc.confirmCancelDelete", { name: targetName })
+    : t("pc.confirmDelete", { name: targetName });
   const confirmed = window.confirm(confirmMessage);
   if (!confirmed) return;
   appState.modelActionInFlight = true;
   try {
     const result = await modelApi.deleteModel(modelId);
     if (!result.ok) {
-      showPlatformNotice(`Could not delete model (${result.error}).`, { level: "error" });
+      showPlatformNotice(t("pc.errDelete", { error: result.error }), { level: "error" });
       return;
     }
   } finally {
@@ -375,17 +373,17 @@ export async function deleteSelectedModel(modelId) {
 export async function purgeAllModels() {
   if (appState.modelActionInFlight) return;
   const confirmed = window.confirm(
-    "Delete ALL model files and clear model/download metadata now?"
+    t("pc.confirmDeleteAll")
   );
   if (!confirmed) return;
   appState.modelActionInFlight = true;
   try {
     const result = await modelApi.purgeModels();
     if (!result.ok) {
-      showPlatformNotice(`Could not purge models (${result.error}).`, { level: "error" });
+      showPlatformNotice(t("pc.errPurge", { error: result.error }), { level: "error" });
       return;
     }
-    setComposerActivity("All models and metadata were cleared.");
+    setComposerActivity(t("pc.allCleared"));
   } finally {
     appState.modelActionInFlight = false;
     await _shell.pollStatus();
@@ -397,11 +395,11 @@ export async function uploadLocalModel() {
   const input = document.getElementById("modelUploadInput");
   const file = input?.files?.[0];
   if (!file) {
-    showPlatformNotice("Pick a .gguf file to upload.", { level: "warn" });
+    showPlatformNotice(t("pc.pickGguf"), { level: "warn" });
     return;
   }
   if (!String(file.name || "").toLowerCase().endsWith(".gguf")) {
-    showPlatformNotice("Only .gguf model files are supported.", { level: "warn" });
+    showPlatformNotice(t("pc.onlyGguf"), { level: "warn" });
     return;
   }
 
@@ -409,28 +407,28 @@ export async function uploadLocalModel() {
   appState.uploadRequest = xhr;
   const cancelBtn = document.getElementById("cancelUploadBtn");
   if (cancelBtn) cancelBtn.hidden = false;
-  setModelUploadStatus("Uploading model... 0%");
+  setModelUploadStatus(t("pc.uploading0"));
 
   xhr.open("POST", "/internal/models/upload");
   xhr.setRequestHeader("x-potato-filename", file.name);
   xhr.upload.onprogress = (event) => {
     if (event.lengthComputable && event.total > 0) {
       const percent = Math.round((event.loaded * 100) / event.total);
-      setModelUploadStatus(`Uploading model... ${percent}% (${formatBytes(event.loaded)} / ${formatBytes(event.total)})`);
+      setModelUploadStatus(t("pc.uploadingPct", { pct: percent, done: formatBytes(event.loaded), total: formatBytes(event.total) }));
     } else {
-      setModelUploadStatus("Uploading model...");
+      setModelUploadStatus(t("pc.uploadingModel"));
     }
   };
   xhr.onerror = async () => {
     appState.uploadRequest = null;
     if (cancelBtn) cancelBtn.hidden = true;
-    setModelUploadStatus("Upload failed.");
+    setModelUploadStatus(t("pc.uploadFailed"));
     await _shell.pollStatus();
   };
   xhr.onabort = async () => {
     appState.uploadRequest = null;
     if (cancelBtn) cancelBtn.hidden = true;
-    setModelUploadStatus("Upload cancelled.");
+    setModelUploadStatus(t("pc.uploadCancelled"));
     await modelApi.cancelUpload();
     await _shell.pollStatus();
   };
@@ -446,15 +444,15 @@ export async function uploadLocalModel() {
     })();
     if (xhr.status < 200 || xhr.status >= 300) {
       if (body?.reason === "upload_too_large" && body?.max_upload_bytes) {
-        setModelUploadStatus(`Upload too large — limit is ${formatBytes(body.max_upload_bytes)} (available storage).`);
+        setModelUploadStatus(t("pc.uploadTooLarge", { limit: formatBytes(body.max_upload_bytes) }));
       } else {
-        setModelUploadStatus(`Upload failed (${body?.reason || xhr.status}).`);
+        setModelUploadStatus(t("pc.uploadFailedReason", { reason: body?.reason || xhr.status }));
       }
     } else if (body?.uploaded) {
       if (input) input.value = "";
-      setModelUploadStatus("Upload completed.");
+      setModelUploadStatus(t("pc.uploadCompleted"));
     } else {
-      setModelUploadStatus(`Upload did not complete (${body?.reason || "unknown"}).`);
+      setModelUploadStatus(t("pc.uploadIncomplete", { reason: body?.reason || t("ru.unknown") }));
     }
     await _shell.pollStatus();
   };
@@ -481,21 +479,21 @@ export async function startModelDownload() {
     }
     if (!result.ok) {
       showPlatformNotice(
-        `${resumableFailedModel && failedDownload ? "Could not resume model download" : "Could not start model download"} (${result.error}).`,
+        t("pc.downloadErr", { which: resumableFailedModel && failedDownload ? t("pc.couldNotResume") : t("pc.couldNotStart"), error: result.error }),
         { level: "error" },
       );
       return;
     }
     if (!result.started && result.reason === "already_running") {
-      setComposerActivity("Model download already running.");
+      setComposerActivity(t("pc.downloadRunning"));
     } else if (!result.started && result.reason === "model_present") {
-      setComposerActivity("Model already present.");
+      setComposerActivity(t("pc.modelPresent"));
     } else if (!result.started && result.reason === "insufficient_storage") {
-      const freeInfo = result.freeBytes != null ? ` (${formatBytes(result.freeBytes)} free, ${formatBytes(result.requiredBytes)} needed)` : "";
-      showPlatformNotice(`Not enough free storage to download this model${freeInfo}. Free up space or delete unused models and try again.`, { level: "warn" });
-      setComposerActivity("Model likely too large for free storage. Delete files and retry.");
+      const freeInfo = result.freeBytes != null ? t("pc.freeInfo", { free: formatBytes(result.freeBytes), needed: formatBytes(result.requiredBytes) }) : "";
+      showPlatformNotice(t("pc.notEnoughStorage", { freeInfo }), { level: "warn" });
+      setComposerActivity(t("pc.tooLarge"));
     } else if (result.started) {
-      setComposerActivity(resumableFailedModel && failedDownload ? "Model download resumed." : "Model download started.");
+      setComposerActivity(resumableFailedModel && failedDownload ? t("pc.downloadResumed") : t("pc.downloadStarted"));
     }
   } finally {
     appState.downloadStartInFlight = false;
@@ -510,8 +508,8 @@ function setRuntimeResetButtonState(inFlight) {
   if (!btn) return;
   btn.disabled = Boolean(inFlight);
   btn.textContent = inFlight
-    ? "Restarting runtime..."
-    : "Unload model + clean memory + restart";
+    ? t("pc.restartingRuntime")
+    : t("adv.resetRuntime");
 }
 
 export function stopRuntimeReconnectWatch() {
@@ -529,7 +527,7 @@ async function stepRuntimeReconnectWatch() {
   const statusPayload = await _shell.pollStatus({ timeoutMs: RUNTIME_RECONNECT_TIMEOUT_MS });
   if (isLocalModelConnected(statusPayload)) {
     stopRuntimeReconnectWatch();
-    setComposerActivity("Runtime reconnected.");
+    setComposerActivity(t("pc.runtimeReconnected"));
     window.setTimeout(() => {
       if (!appState.runtimeReconnectWatchActive && !appState.requestInFlight) {
         setComposerActivity("");
@@ -541,7 +539,7 @@ async function stepRuntimeReconnectWatch() {
     stopRuntimeReconnectWatch();
     setComposerActivity("");
     showPlatformNotice(
-      "Runtime reset is taking longer than expected. It may still be loading the model. Check status in a few moments.",
+      t("pc.resetTakingLong"),
       { level: "warn" },
     );
     return;
@@ -553,36 +551,35 @@ export function startRuntimeReconnectWatch() {
   stopRuntimeReconnectWatch();
   appState.runtimeReconnectWatchActive = true;
   appState.runtimeReconnectAttempts = 0;
-  setComposerActivity("Runtime reset in progress. Reconnecting...");
+  setComposerActivity(t("pc.resetReconnecting"));
   stepRuntimeReconnectWatch();
 }
 
 export async function resetRuntimeHeavy() {
   if (appState.runtimeResetInFlight) return;
   const confirmed = window.confirm(
-    "Unload the model, reclaim memory/swap, and restart Potato runtime now? " +
-    "The chat will disconnect briefly."
+    t("pc.confirmResetRuntime")
   );
   if (!confirmed) return;
 
   appState.runtimeResetInFlight = true;
   let shouldTrackReconnect = false;
   setRuntimeResetButtonState(true);
-  setComposerActivity("Scheduling runtime reset...");
+  setComposerActivity(t("pc.schedulingReset"));
   try {
     const result = await platformApi.resetRuntime();
     if (!result.ok) {
-      showPlatformNotice(`Could not start runtime reset (${result.error}).`, { level: "error" });
+      showPlatformNotice(t("pc.errStartReset", { error: result.error }), { level: "error" });
       return;
     }
     if (result.started) {
       shouldTrackReconnect = true;
       showPlatformNotice(
-        "Runtime reset started. Unloading model from memory and reclaiming RAM/swap. Model files on disk are unchanged.",
+        t("pc.resetStarted"),
         { level: "info" },
       );
     } else {
-      showPlatformNotice(`Runtime reset did not start (${result.reason || "unknown"}).`, { level: "warn" });
+      showPlatformNotice(t("pc.resetDidNotStart", { reason: result.reason || t("ru.unknown") }), { level: "warn" });
     }
   } finally {
     appState.runtimeResetInFlight = false;
@@ -608,7 +605,7 @@ export async function checkForUpdate() {
   try {
     const result = await platformApi.checkForUpdate();
     if (!result.ok) {
-      showPlatformNotice(`Could not check for updates (${result.error}).`, { level: "error" });
+      showPlatformNotice(t("pc.errCheckUpdates", { error: result.error }), { level: "error" });
       return;
     }
     await _shell.pollStatus();
@@ -626,11 +623,11 @@ export async function startUpdate() {
     const result = await platformApi.startUpdate();
     if (!result.ok) {
       const reasons = {
-        orchestrator_disabled: "Updates are not available (orchestrator disabled).",
-        no_update_available: "No update available. Try checking again.",
-        no_tarball_url: "No download URL found for this update. Try checking again.",
-        download_active: "A model download is in progress. Wait for it to finish.",
-        update_in_progress: "An update is already in progress.",
+        orchestrator_disabled: t("pc.updErrOrchestrator"),
+        no_update_available: t("pc.updErrNoUpdate"),
+        no_tarball_url: t("pc.updErrNoTarball"),
+        download_active: t("pc.updErrDownloadActive"),
+        update_in_progress: t("pc.updErrInProgress"),
       };
       showPlatformNotice(reasons[result.reason] || `Could not start update (${result.reason || result.error || "unknown"}).`, { level: "error" });
       return;
@@ -668,7 +665,7 @@ async function stepUpdateReconnectWatch() {
   if (updateState === "idle") {
     stopUpdateReconnectWatch();
     const version = String(statusPayload?.update?.current_version || "");
-    setComposerActivity(version ? `Update complete! Now running v${version}. Reloading...` : "Update complete! Reloading...");
+    setComposerActivity(version ? t("pc.updCompleteVer", { v: version }) : t("pc.updComplete"));
     window.setTimeout(() => {
       const hasInput = document.querySelector("#userPrompt")?.value?.trim();
       if (!appState.requestInFlight && !hasInput) window.location.reload();
@@ -678,13 +675,13 @@ async function stepUpdateReconnectWatch() {
   if (updateState === "failed") {
     stopUpdateReconnectWatch();
     setComposerActivity("");
-    showPlatformNotice("Update may not have applied correctly. Check the version in the sidebar.", { level: "warn" });
+    showPlatformNotice(t("pc.updateMaybeNotApplied"), { level: "warn" });
     return;
   }
   if (appState.updateReconnectAttempts >= RUNTIME_RECONNECT_MAX_ATTEMPTS) {
     stopUpdateReconnectWatch();
     setComposerActivity("");
-    showPlatformNotice("Reconnection is taking longer than expected. The update may still be completing.", { level: "warn" });
+    showPlatformNotice(t("pc.reconnectSlow"), { level: "warn" });
     return;
   }
   appState.updateReconnectTimer = window.setTimeout(stepUpdateReconnectWatch, RUNTIME_RECONNECT_INTERVAL_MS);
@@ -694,7 +691,7 @@ export function startUpdateReconnectWatch() {
   stopUpdateReconnectWatch();
   appState.updateReconnectActive = true;
   appState.updateReconnectAttempts = 0;
-  setComposerActivity("Potato OS is restarting after update. Reconnecting...");
+  setComposerActivity(t("pc.restartingAfterUpdate"));
   stepUpdateReconnectWatch();
 }
 

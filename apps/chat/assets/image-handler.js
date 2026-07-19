@@ -1,6 +1,7 @@
 "use strict";
 
 import { appState, IMAGE_SAFE_MAX_BYTES, IMAGE_MAX_DIMENSION, IMAGE_MAX_PIXEL_COUNT } from "/assets/state.js";
+import { t } from "/assets/i18n.js";
 import { formatBytes, estimateDataUrlBytes } from "/assets/utils.js";
 import { appendMessage } from "./messages.js";
 
@@ -118,8 +119,8 @@ import { appendMessage } from "./messages.js";
         };
       }
 
-      if (_ui.setComposerActivity) _ui.setComposerActivity("Optimizing image...");
-      if (_ui.setComposerStatusChip) _ui.setComposerStatusChip("Optimizing image...", { phase: "image" });
+      if (_ui.setComposerActivity) _ui.setComposerActivity(t("ih.optimizing"));
+      if (_ui.setComposerStatusChip) _ui.setComposerStatusChip(t("ih.optimizing"), { phase: "image" });
       const compressed = await compressImageDataUrl(dataUrl);
       return {
         dataUrl: compressed.dataUrl,
@@ -163,7 +164,7 @@ import { appendMessage } from "./messages.js";
         clearBtn.hidden = true;
       }
       if (attachBtn) {
-        attachBtn.textContent = "Attach image";
+        attachBtn.textContent = t("composer.attachImage");
         attachBtn.classList.remove("selected");
       }
     }
@@ -186,7 +187,7 @@ import { appendMessage } from "./messages.js";
         return;
       }
       if (!String(file.type || "").startsWith("image/")) {
-        appendMessage("assistant", "Only image files are supported.");
+        appendMessage("assistant", t("ih.onlyImages"));
         clearPendingImage();
         if (_ui.setComposerActivity) _ui.setComposerActivity("");
         if (_ui.hideComposerStatusChip) _ui.hideComposerStatusChip();
@@ -200,18 +201,18 @@ import { appendMessage } from "./messages.js";
       }
       const reader = new FileReader();
       appState.pendingImageReader = reader;
-      if (_ui.setComposerActivity) _ui.setComposerActivity("Reading image...");
-      if (_ui.setComposerStatusChip) _ui.setComposerStatusChip("Reading image • 0%", { phase: "image" });
+      if (_ui.setComposerActivity) _ui.setComposerActivity(t("ih.readingImage"));
+      if (_ui.setComposerStatusChip) _ui.setComposerStatusChip(t("ih.readingChip", { pct: 0 }), { phase: "image" });
       if (_ui.setCancelEnabled) _ui.setCancelEnabled(true);
       reader.onprogress = (event) => {
         if (event.lengthComputable && event.total > 0) {
           const percent = Math.round((event.loaded * 100) / event.total);
-          if (_ui.setComposerActivity) _ui.setComposerActivity(`Reading image... ${percent}%`);
-          if (_ui.setComposerStatusChip) _ui.setComposerStatusChip(`Reading image • ${percent}%`, { phase: "image" });
+          if (_ui.setComposerActivity) _ui.setComposerActivity(t("ih.readingImagePct", { pct: percent }));
+          if (_ui.setComposerStatusChip) _ui.setComposerStatusChip(t("ih.readingChip", { pct: percent }), { phase: "image" });
           return;
         }
-        if (_ui.setComposerActivity) _ui.setComposerActivity("Reading image...");
-        if (_ui.setComposerStatusChip) _ui.setComposerStatusChip("Reading image...", { phase: "image" });
+        if (_ui.setComposerActivity) _ui.setComposerActivity(t("ih.readingImage"));
+        if (_ui.setComposerStatusChip) _ui.setComposerStatusChip(t("ih.readingImage"), { phase: "image" });
       };
       reader.onload = async () => {
         if (selectionToken !== appState.pendingImageToken) {
@@ -219,7 +220,7 @@ import { appendMessage } from "./messages.js";
         }
         const result = typeof reader.result === "string" ? reader.result : "";
         if (!result.startsWith("data:image/")) {
-          appendMessage("assistant", "Invalid image encoding.");
+          appendMessage("assistant", t("ih.invalidEncoding"));
           clearPendingImage();
           appState.pendingImageReader = null;
           if (_ui.setComposerActivity) _ui.setComposerActivity("");
@@ -233,7 +234,7 @@ import { appendMessage } from "./messages.js";
         try {
           processedImage = await maybeCompressImage(result, file);
         } catch (_err) {
-          appendMessage("assistant", "Could not optimize the selected image.");
+          appendMessage("assistant", t("ih.couldNotOptimize"));
           clearPendingImage();
           appState.pendingImageReader = null;
           if (_ui.setComposerActivity) _ui.setComposerActivity("");
@@ -269,9 +270,9 @@ import { appendMessage } from "./messages.js";
         }
         if (imageMeta) {
           if (appState.pendingImage.optimized && appState.pendingImage.originalSize > appState.pendingImage.size) {
-            imageMeta.textContent = `${appState.pendingImage.name} (${formatBytes(appState.pendingImage.size)}, optimized from ${formatBytes(appState.pendingImage.originalSize)})`;
+            imageMeta.textContent = t("ih.metaOptimized", { name: appState.pendingImage.name, size: formatBytes(appState.pendingImage.size), orig: formatBytes(appState.pendingImage.originalSize) });
           } else {
-            imageMeta.textContent = `${appState.pendingImage.name} (${formatBytes(appState.pendingImage.size)})`;
+            imageMeta.textContent = t("ih.meta", { name: appState.pendingImage.name, size: formatBytes(appState.pendingImage.size) });
           }
           imageMeta.hidden = false;
         }
@@ -279,7 +280,7 @@ import { appendMessage } from "./messages.js";
           clearBtn.hidden = false;
         }
         if (attachBtn) {
-          attachBtn.textContent = "Change image";
+          attachBtn.textContent = t("ih.changeImage");
           attachBtn.classList.add("selected");
         }
         appState.pendingImageReader = null;
@@ -292,7 +293,7 @@ import { appendMessage } from "./messages.js";
         if (selectionToken !== appState.pendingImageToken) {
           return;
         }
-        appendMessage("assistant", "Could not read the selected image.");
+        appendMessage("assistant", t("ih.couldNotRead"));
         clearPendingImage();
         appState.pendingImageReader = null;
         if (_ui.setComposerActivity) _ui.setComposerActivity("");
@@ -306,7 +307,7 @@ import { appendMessage } from "./messages.js";
         }
         clearPendingImage();
         appState.pendingImageReader = null;
-        if (_ui.setComposerActivity) _ui.setComposerActivity("Image load cancelled.");
+        if (_ui.setComposerActivity) _ui.setComposerActivity(t("ce.imageCancelled"));
         if (_ui.hideComposerStatusChip) _ui.hideComposerStatusChip();
         if (_ui.setCancelEnabled) _ui.setCancelEnabled(false);
         if (_ui.focusPromptInput) _ui.focusPromptInput();
@@ -318,7 +319,7 @@ import { appendMessage } from "./messages.js";
       if (!appState.pendingImage) {
         return content;
       }
-      const textPart = content || "Describe this image.";
+      const textPart = content || t("ih.describePrompt");
       return [
         { type: "text", text: textPart },
         { type: "image_url", image_url: { url: appState.pendingImage.dataUrl } },

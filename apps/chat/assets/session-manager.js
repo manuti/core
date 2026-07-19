@@ -1,6 +1,7 @@
 "use strict";
 
 import { appState, SESSIONS_DB_NAME, SESSIONS_DB_VERSION, SESSIONS_STORE, ACTIVE_SESSION_KEY, SESSION_TITLE_MAX_LENGTH, SESSION_LIST_MAX_VISIBLE } from "/assets/state.js";
+import { t } from "/assets/i18n.js";
 
 // Late-bound references (set by chat.js during init to avoid circular deps)
 let _appendMessage = null;
@@ -90,7 +91,7 @@ export function generateSessionTitle(firstMessage) {
     text = textPart?.text || "";
   }
   text = text.trim();
-  if (!text) return "New chat";
+  if (!text) return t("sm.newChat");
   if (text.length <= SESSION_TITLE_MAX_LENGTH) return text;
   const truncated = text.slice(0, SESSION_TITLE_MAX_LENGTH);
   const lastSpace = truncated.lastIndexOf(" ");
@@ -284,7 +285,7 @@ export function renderSessionList() {
     item.dataset.sessionId = meta.id;
     const title = document.createElement("span");
     title.className = "chat-session-title";
-    title.textContent = meta.title || "New chat";
+    title.textContent = meta.title || t("sm.newChat");
     const del = document.createElement("button");
     del.className = "chat-session-delete";
     del.type = "button";

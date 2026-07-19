@@ -1,6 +1,7 @@
 "use strict";
 
 import { appState } from "/assets/state.js";
+import { t } from "/assets/i18n.js";
 
     let _openEditMessageModal = null;
 
@@ -215,7 +216,7 @@ import { appState } from "/assets/state.js";
       const thumbnail = document.createElement("img");
       thumbnail.className = "message-image-thumb";
       thumbnail.src = imageDataUrl;
-      thumbnail.alt = `Uploaded image: ${imageName}`;
+      thumbnail.alt = t("msg.uploadedImageAlt", { name: imageName });
       thumbnail.loading = "lazy";
       bubble.appendChild(thumbnail);
 
@@ -281,7 +282,7 @@ import { appState } from "/assets/state.js";
       const percent = Number.isFinite(percentRaw)
         ? Math.max(0, Math.min(100, Math.round(percentRaw)))
         : null;
-      const label = String(options.label || "Prompt processing");
+      const label = String(options.label || t("ce.promptProcessing"));
 
       bubble.classList.remove("with-image");
       bubble.classList.add("processing");
@@ -312,7 +313,7 @@ import { appState } from "/assets/state.js";
       const percentEl = document.createElement("div");
       percentEl.className = "message-processing-percent";
       percentEl.textContent = phase === "generating"
-        ? "Live"
+        ? t("msg.live")
         : `${percent ?? 0}%`;
 
       meter.appendChild(bar);

@@ -1,6 +1,7 @@
 "use strict";
 
 import { appState } from "./state.js";
+import { t } from "./i18n.js";
 
 let _terminal = null;
 let _fitAddon = null;
@@ -32,7 +33,7 @@ function _connectWebSocket() {
   const token = document.querySelector('meta[name="terminal-token"]')?.content || "";
   const url = `${proto}//${location.host}/ws/terminal?token=${encodeURIComponent(token)}`;
 
-  _setStatus("Connecting...");
+  _setStatus(t("term.connecting"));
   _setReconnectVisible(false);
 
   _ws = new WebSocket(url);
@@ -40,7 +41,7 @@ function _connectWebSocket() {
   window.__potatoTerminalWs = _ws;
 
   _ws.onopen = () => {
-    _setStatus("Connected");
+    _setStatus(t("term.connected"));
     _setReconnectVisible(false);
     // Send initial terminal size
     if (_terminal) {
@@ -58,17 +59,17 @@ function _connectWebSocket() {
     if (msg.type === "output" && _terminal) {
       _terminal.write(msg.data);
     } else if (msg.type === "exit") {
-      _setStatus("Session ended");
+      _setStatus(t("term.sessionEnded"));
       _setReconnectVisible(true);
     } else if (msg.type === "error") {
-      _setStatus(`Error: ${msg.message || "unknown"}`);
+      _setStatus(t("term.errorMsg", { msg: msg.message || t("ru.unknown") }));
       _setReconnectVisible(true);
     }
   };
 
   _ws.onclose = () => {
     if (appState.terminalModalOpen) {
-      _setStatus("Disconnected");
+      _setStatus(t("term.disconnected"));
       _setReconnectVisible(true);
     }
     _ws = null;
@@ -76,7 +77,7 @@ function _connectWebSocket() {
   };
 
   _ws.onerror = () => {
-    _setStatus("Connection error");
+    _setStatus(t("term.connError"));
     _setReconnectVisible(true);
   };
 }

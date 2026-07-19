@@ -1,6 +1,7 @@
 "use strict";
 
 import { appState } from "./state.js";
+import { t } from "./i18n.js";
 
 function truncateModelName(filename) {
   const name = String(filename || "");
@@ -25,7 +26,7 @@ export function populateModelSwitcher() {
   if (models.length === 0) {
     const li = document.createElement("li");
     li.className = "model-switcher-item disabled";
-    li.textContent = "No models installed";
+    li.textContent = t("ms.noModels");
     list.appendChild(li);
     return;
   }
