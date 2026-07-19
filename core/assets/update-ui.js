@@ -1,6 +1,7 @@
 "use strict";
 
 import { appState, CHANGELOG_SEEN_KEY } from "./state.js";
+import { t } from "./i18n.js";
 import { flushPendingNoticeDismissal } from "./platform-notify.js";
 
 const ACTIVE_STATES = new Set(["downloading", "staging", "applying", "restart_pending"]);
@@ -58,13 +59,13 @@ export function renderUpdateCard(updatePayload) {
       // Check failed (rate_limited, network_error, etc.) — show feedback
       card.hidden = false;
       const errorLabels = {
-        rate_limited: "GitHub rate limit reached. Try again later.",
-        network_error: "Could not reach GitHub. Check network connection.",
-        parse_error: "Received an unexpected response from GitHub.",
-        unknown_error: "An unexpected error occurred while checking for updates.",
+        rate_limited: t("up.errRateLimited"),
+        network_error: t("up.errNetwork"),
+        parse_error: t("up.errParse"),
+        unknown_error: t("up.errUnknown"),
       };
-      title.textContent = "Update check failed";
-      hint.textContent = errorLabels[error] || `Check failed: ${error}`;
+      title.textContent = t("up.checkFailed");
+      hint.textContent = errorLabels[error] || t("up.checkFailedGeneric", { error });
       return;
     }
     card.hidden = true;
@@ -74,19 +75,19 @@ export function renderUpdateCard(updatePayload) {
   card.hidden = false;
 
   if (state === "failed") {
-    title.textContent = "Update failed";
-    hint.textContent = error || "An unknown error occurred during the update.";
+    title.textContent = t("up.updateFailed");
+    hint.textContent = error || t("up.updateUnknownErr");
     if (retryBtn) {
       retryBtn.hidden = false;
       retryBtn.disabled = appState.updateStartInFlight;
-      retryBtn.textContent = appState.updateStartInFlight ? "Retrying..." : "Retry";
+      retryBtn.textContent = appState.updateStartInFlight ? t("up.retrying") : t("update.retry");
     }
     return;
   }
 
   if (state === "restart_pending") {
-    title.textContent = "Restarting...";
-    hint.textContent = "Update installed. Potato OS is restarting. This page will reconnect automatically.";
+    title.textContent = t("up.restarting");
+    hint.textContent = t("up.restartHint");
     if (_onRestartPending && !appState.updateReconnectActive) {
       _onRestartPending();
     }
@@ -94,42 +95,42 @@ export function renderUpdateCard(updatePayload) {
   }
 
   if (state === "applying") {
-    title.textContent = "Installing update...";
+    title.textContent = t("up.installing");
     hint.textContent = latest
-      ? `Applying v${latest}. Do not power off.`
-      : "Applying update. Do not power off.";
+      ? t("up.applyingVer", { v: latest })
+      : t("up.applying");
     _showProgress(progressWrap, progressBar, percent);
     return;
   }
 
   if (state === "staging") {
-    title.textContent = "Preparing update...";
+    title.textContent = t("up.preparing");
     hint.textContent = latest
-      ? `Extracting v${latest}...`
-      : "Extracting update...";
+      ? t("up.extractingVer", { v: latest })
+      : t("up.extracting");
     _showProgress(progressWrap, progressBar, percent);
     return;
   }
 
   if (state === "downloading") {
-    title.textContent = "Downloading update...";
+    title.textContent = t("up.downloading");
     hint.textContent = latest
-      ? `Downloading v${latest}: ${percent}%`
-      : `Downloading: ${percent}%`;
+      ? t("up.downloadingVer", { v: latest, pct: percent })
+      : t("up.downloadingPct", { pct: percent });
     _showProgress(progressWrap, progressBar, percent);
     return;
   }
 
   // idle + available
-  title.textContent = latest ? `Update available: v${latest}` : "Update available";
+  title.textContent = latest ? t("up.availableVer", { v: latest }) : t("update.available");
   hint.textContent = deferred
-    ? "A model download is in progress. Update will be available after it completes."
-    : (current ? `Current: v${current}. A new version is ready.` : "A new version is ready.");
+    ? t("up.modelDownloadInProgress")
+    : (current ? t("up.currentReady", { v: current }) : t("up.newReady"));
 
   if (startBtn && !deferred) {
     startBtn.hidden = false;
     startBtn.disabled = appState.updateStartInFlight || isActive;
-    startBtn.textContent = appState.updateStartInFlight ? "Starting..." : "Install update";
+    startBtn.textContent = appState.updateStartInFlight ? t("up.starting") : t("update.install");
   }
   if (notesBtn && hasNotes) {
     notesBtn.hidden = false;
@@ -152,7 +153,7 @@ export function setUpdateCheckInFlight(inFlight) {
   if (!btn) return;
   const blocked = Boolean(inFlight) || isUpdateExecutionActive();
   btn.disabled = blocked;
-  btn.textContent = inFlight ? "Checking..." : "Check for updates";
+  btn.textContent = inFlight ? t("up.checking") : t("sidebar.checkUpdates");
 }
 
 export function setUpdateStartInFlight(inFlight) {
@@ -161,11 +162,11 @@ export function setUpdateStartInFlight(inFlight) {
   const retryBtn = document.getElementById("updateRetryBtn");
   if (startBtn) {
     startBtn.disabled = Boolean(inFlight);
-    startBtn.textContent = inFlight ? "Starting..." : "Install update";
+    startBtn.textContent = inFlight ? t("up.starting") : t("update.install");
   }
   if (retryBtn) {
     retryBtn.disabled = Boolean(inFlight);
-    retryBtn.textContent = inFlight ? "Retrying..." : "Retry";
+    retryBtn.textContent = inFlight ? t("up.retrying") : t("update.retry");
   }
 }
 
@@ -197,12 +198,12 @@ export function openChangelogModal({ version, notes, subtitle } = {}) {
   const subtitleEl = document.getElementById("changelogModalSubtitle");
   const contentEl = document.getElementById("changelogContent");
 
-  if (titleEl) titleEl.textContent = version ? `What's new in v${version}` : "What's new";
+  if (titleEl) titleEl.textContent = version ? t("up.whatsNewVer", { v: version }) : t("changelog.title");
   if (subtitleEl) subtitleEl.textContent = subtitle || "";
   if (contentEl) {
     contentEl.innerHTML = notes
       ? _renderMarkdown(notes)
-      : "No release notes available for this version.";
+      : t("up.noReleaseNotes");
   }
 }
 
@@ -232,6 +233,6 @@ function maybeAutoOpenChangelog(updatePayload) {
   openChangelogModal({
     version,
     notes: updatePayload?.just_updated_release_notes || updatePayload?.release_notes || null,
-    subtitle: "You\u2019ve updated to this version.",
+    subtitle: t("up.justUpdated"),
   });
 }
