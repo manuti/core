@@ -45,3 +45,29 @@ test("backend error code (invalid_json) is localized via errcode.*", async ({ pa
   expect(result).not.toContain("invalid_json");   // raw code not shown
   expect(result).toContain("400");                // generic request-failed path
 });
+
+test("inferno error.code=vision_not_supported routes to the localized notice", async ({ page }) => {
+  await page.goto("/");
+  await waitForStatusApplied(page);
+  const result = await page.evaluate(async () => {
+    const mod = await import("/app/chat/assets/chat-engine.js");
+    return mod.formatChatFailureMessage(
+      400,
+      { error: { code: "vision_not_supported", message: "Vision input is not supported by this model/runtime configuration" } },
+      { hasImageRequest: true },
+    );
+  });
+  expect(result).not.toContain("Vision input is not supported");
+  expect(result).not.toContain("vision_not_supported");
+});
+
+test("a backend error.code is localized via errcode.*", async ({ page }) => {
+  await page.goto("/");
+  await waitForStatusApplied(page);
+  const result = await page.evaluate(async () => {
+    const mod = await import("/app/chat/assets/chat-engine.js");
+    return mod.formatChatFailureMessage(400, { error: { code: "messages_required", message: "messages required" } }, {});
+  });
+  expect(result).not.toContain("messages_required"); // raw code not shown
+  expect(result).toContain("400");
+});

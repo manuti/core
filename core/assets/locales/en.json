@@ -487,5 +487,9 @@
   "errcode.download_failed": "download failed",
   "errcode.cancel_requested": "cancel requested",
   "errcode.invalid_json": "invalid request body",
-  "errcode.terminal_session_limit": "terminal session limit reached"
+  "errcode.terminal_session_limit": "terminal session limit reached",
+  "errcode.litert_engine_not_loaded": "LiteRT engine not loaded",
+  "errcode.messages_required": "no messages provided",
+  "errcode.inference_failed": "inference failed",
+  "errcode.vision_not_supported": "vision not supported by this model"
 }

@@ -25,18 +25,25 @@ import { saveActiveSession } from "./session-manager.js";
         return t("ce.busy");
       }
       const apiMessage = extractApiErrorMessage(body);
+      // Backends may send a stable machine code (e.g. inferno's LiteRT adapter);
+      // prefer it, falling back to matching the human message.
+      const apiCode = (body && body.error && typeof body.error.code === "string") ? body.error.code : "";
       const normalized = apiMessage.toLowerCase();
       if (
         requestCtx?.hasImageRequest
         && (
+          apiCode === "vision_not_supported"
           // llama.cpp wording
-          normalized.includes("image input is not supported")
+          || normalized.includes("image input is not supported")
           // inferno / LiteRT wording (litert_adapter.py)
           || normalized.includes("vision input is not supported")
           || normalized.includes("mmproj")
         )
       ) {
         return formatImageRejectedNotice(appState.latestStatus);
+      }
+      if (apiCode) {
+        return t("ce.reqFailedMsg", { code: statusCode, msg: tReason(apiCode) });
       }
       if (apiMessage) {
         return t("ce.reqFailedMsg", { code: statusCode, msg: tReason(apiMessage) });

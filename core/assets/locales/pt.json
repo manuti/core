@@ -487,5 +487,9 @@
   "errcode.download_failed": "a transferência falhou",
   "errcode.cancel_requested": "cancelamento solicitado",
   "errcode.invalid_json": "corpo do pedido inválido",
-  "errcode.terminal_session_limit": "limite de sessões de terminal atingido"
+  "errcode.terminal_session_limit": "limite de sessões de terminal atingido",
+  "errcode.litert_engine_not_loaded": "motor LiteRT não carregado",
+  "errcode.messages_required": "nenhuma mensagem fornecida",
+  "errcode.inference_failed": "a inferência falhou",
+  "errcode.vision_not_supported": "este modelo não suporta visão"
 }
