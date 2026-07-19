@@ -78,6 +78,9 @@ export function applyTranslations(root = document) {
   root.querySelectorAll("[data-i18n-title]").forEach((el) => {
     el.setAttribute("title", t(el.getAttribute("data-i18n-title")));
   });
+  root.querySelectorAll("[data-i18n-alt]").forEach((el) => {
+    el.setAttribute("alt", t(el.getAttribute("data-i18n-alt")));
+  });
   root.querySelectorAll("[data-i18n-aria-label]").forEach((el) => {
     el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria-label")));
   });

@@ -15,24 +15,24 @@
 
     <aside id="sidebarPanel" class="sidebar" aria-hidden="false">
       <div class="sidebar-mobile-actions">
-        <button id="sidebarCloseBtn" class="sidebar-close" type="button" hidden>Close</button>
+        <button id="sidebarCloseBtn" class="sidebar-close" type="button" hidden data-i18n="sidebar.close">Close</button>
       </div>
       <section class="sidebar-section">
         <h2 class="brand">Potato OS</h2>
         <p id="sidebarNote" class="sidebar-note"></p>
-        <button id="updateCheckBtn" class="ghost-btn update-check-btn" type="button">Check for updates</button>
-        <button id="terminalOpenBtn" class="ghost-btn terminal-open-btn" type="button">Terminal</button>
+        <button id="updateCheckBtn" class="ghost-btn update-check-btn" type="button" data-i18n="sidebar.checkUpdates">Check for updates</button>
+        <button id="terminalOpenBtn" class="ghost-btn terminal-open-btn" type="button" data-i18n="sidebar.terminal">Terminal</button>
         <div class="status-summary">
           <div id="statusText" class="status-card">Checking status...</div>
           <div id="statusActions" class="status-actions" hidden>
-            <button id="statusResumeDownloadBtn" class="ghost-btn" type="button">Resume</button>
+            <button id="statusResumeDownloadBtn" class="ghost-btn" type="button" data-i18n="status.resume">Resume</button>
           </div>
         </div>
         <div id="downloadPrompt" class="download-prompt" hidden>
-          <p class="download-prompt-title">Model download required</p>
+          <p class="download-prompt-title" data-i18n="download.required">Model download required</p>
           <p id="downloadPromptHint" class="download-prompt-hint">Auto-download starts in 5:00.</p>
           <div class="download-prompt-actions">
-            <button id="startDownloadBtn" class="ghost-btn" type="button">Start download now</button>
+            <button id="startDownloadBtn" class="ghost-btn" type="button" data-i18n="download.startNow">Start download now</button>
           </div>
         </div>
         <div id="updateCard" class="update-card" hidden>
@@ -42,71 +42,71 @@
             <div id="updateCardProgressBar" class="update-card-progress-bar"></div>
           </div>
           <div class="update-card-actions">
-            <button id="updateStartBtn" class="ghost-btn" type="button" hidden>Install update</button>
-            <button id="updateNotesBtn" class="ghost-btn" type="button" hidden>Release notes</button>
-            <button id="updateRetryBtn" class="ghost-btn" type="button" hidden>Retry</button>
+            <button id="updateStartBtn" class="ghost-btn" type="button" hidden data-i18n="update.install">Install update</button>
+            <button id="updateNotesBtn" class="ghost-btn" type="button" hidden data-i18n="update.releaseNotes">Release notes</button>
+            <button id="updateRetryBtn" class="ghost-btn" type="button" hidden data-i18n="update.retry">Retry</button>
           </div>
         </div>
         <div id="systemRuntimeCard" class="status-card runtime-card">
           <div class="runtime-header">
-            <span>Pi Runtime</span>
+            <span data-i18n="runtime.piRuntime">Pi Runtime</span>
             <button id="runtimeViewToggle" class="runtime-toggle" type="button" aria-expanded="false">Show details</button>
           </div>
           <div id="compatibilityWarnings" class="runtime-compact" hidden>
             <span id="compatibilityWarningsText"></span>
-            <button id="compatibilityOverrideBtn" class="ghost-btn" type="button" hidden>Try anyway</button>
+            <button id="compatibilityOverrideBtn" class="ghost-btn" type="button" hidden data-i18n="runtime.tryAnyway">Try anyway</button>
           </div>
           <div id="runtimeCompact" class="runtime-compact">CPU -- | Cores -- | GPU -- | Swap -- | Throttle --</div>
           <div id="runtimeDetails" class="runtime-details" hidden>
-            <section id="runtimeDetailsPowerGroup" class="runtime-detail-group runtime-detail-group--power" aria-label="Power">
-              <div class="runtime-detail-group-title">Power</div>
+            <section id="runtimeDetailsPowerGroup" class="runtime-detail-group runtime-detail-group--power" aria-label="Power" data-i18n-aria-label="runtime.group.power">
+              <div class="runtime-detail-group-title" data-i18n="runtime.group.power">Power</div>
               <div id="runtimeDetailPower" class="runtime-detail-prominent">Power (estimated total): --</div>
               <div id="runtimeDetailPowerRaw" class="runtime-detail-secondary">Power (PMIC raw): --</div>
             </section>
-            <section id="runtimeDetailsPerformanceGroup" class="runtime-detail-group" aria-label="Performance">
-              <div class="runtime-detail-group-title">Performance</div>
-              <div class="runtime-detail-row"><span class="runtime-detail-label">CPU total</span><span id="runtimeDetailCpuValue" class="runtime-detail-value">--</span></div>
-              <div class="runtime-detail-row"><span class="runtime-detail-label">CPU cores</span><span id="runtimeDetailCoresValue" class="runtime-detail-value">--</span></div>
-              <div class="runtime-detail-row"><span class="runtime-detail-label">CPU clock</span><span id="runtimeDetailCpuClockValue" class="runtime-detail-value">--</span></div>
-              <div class="runtime-detail-row"><span class="runtime-detail-label">GPU clock</span><span id="runtimeDetailGpuValue" class="runtime-detail-value">--</span></div>
-              <div class="runtime-detail-row"><span class="runtime-detail-label">Temperature</span><span id="runtimeDetailTempValue" class="runtime-detail-value">--</span></div>
-              <div class="runtime-detail-row"><span class="runtime-detail-label">Throttling</span><span id="runtimeDetailThrottleValue" class="runtime-detail-value">--</span></div>
-              <div class="runtime-detail-row"><span class="runtime-detail-label">History</span><span id="runtimeDetailThrottleHistoryValue" class="runtime-detail-value">--</span></div>
+            <section id="runtimeDetailsPerformanceGroup" class="runtime-detail-group" aria-label="Performance" data-i18n-aria-label="runtime.group.performance">
+              <div class="runtime-detail-group-title" data-i18n="runtime.group.performance">Performance</div>
+              <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.cpuTotal">CPU total</span><span id="runtimeDetailCpuValue" class="runtime-detail-value">--</span></div>
+              <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.cpuCores">CPU cores</span><span id="runtimeDetailCoresValue" class="runtime-detail-value">--</span></div>
+              <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.cpuClock">CPU clock</span><span id="runtimeDetailCpuClockValue" class="runtime-detail-value">--</span></div>
+              <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.gpuClock">GPU clock</span><span id="runtimeDetailGpuValue" class="runtime-detail-value">--</span></div>
+              <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.temperature">Temperature</span><span id="runtimeDetailTempValue" class="runtime-detail-value">--</span></div>
+              <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.throttling">Throttling</span><span id="runtimeDetailThrottleValue" class="runtime-detail-value">--</span></div>
+              <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.history">History</span><span id="runtimeDetailThrottleHistoryValue" class="runtime-detail-value">--</span></div>
             </section>
-            <section id="runtimeDetailsMemoryGroup" class="runtime-detail-group" aria-label="Memory">
-              <div class="runtime-detail-group-title">Memory</div>
-              <div class="runtime-detail-row"><span class="runtime-detail-label">RAM used</span><span id="runtimeDetailMemoryValue" class="runtime-detail-value">--</span></div>
+            <section id="runtimeDetailsMemoryGroup" class="runtime-detail-group" aria-label="Memory" data-i18n-aria-label="runtime.group.memory">
+              <div class="runtime-detail-group-title" data-i18n="runtime.group.memory">Memory</div>
+              <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.ramUsed">RAM used</span><span id="runtimeDetailMemoryValue" class="runtime-detail-value">--</span></div>
               <div class="runtime-detail-row" id="runtimeDetailLlamaRssRow"><span class="runtime-detail-label">llama-server</span><span id="runtimeDetailLlamaRssValue" class="runtime-detail-value">--</span></div>
-              <div class="runtime-detail-row" id="runtimeDetailModelRamRow"><span class="runtime-detail-label runtime-detail-label--indent">model in RAM</span><span id="runtimeDetailModelRamValue" class="runtime-detail-value">--</span></div>
-              <div class="runtime-detail-row" id="runtimeDetailPressureRow"><span class="runtime-detail-label">Pressure</span><span id="runtimeDetailPressureValue" class="runtime-detail-value">--</span></div>
+              <div class="runtime-detail-row" id="runtimeDetailModelRamRow"><span class="runtime-detail-label runtime-detail-label--indent" data-i18n="rt.modelInRam">model in RAM</span><span id="runtimeDetailModelRamValue" class="runtime-detail-value">--</span></div>
+              <div class="runtime-detail-row" id="runtimeDetailPressureRow"><span class="runtime-detail-label" data-i18n="rt.pressure">Pressure</span><span id="runtimeDetailPressureValue" class="runtime-detail-value">--</span></div>
               <div class="runtime-detail-row"><span id="runtimeDetailSwapLabel" class="runtime-detail-label">zram</span><span id="runtimeDetailSwapValue" class="runtime-detail-value">--</span></div>
             </section>
-            <section id="runtimeDetailsStorageGroup" class="runtime-detail-group" aria-label="Storage">
-              <div class="runtime-detail-group-title">Storage</div>
-              <div class="runtime-detail-row"><span class="runtime-detail-label">Free</span><span id="runtimeDetailStorageValue" class="runtime-detail-value">--</span></div>
+            <section id="runtimeDetailsStorageGroup" class="runtime-detail-group" aria-label="Storage" data-i18n-aria-label="runtime.group.storage">
+              <div class="runtime-detail-group-title" data-i18n="runtime.group.storage">Storage</div>
+              <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.free">Free</span><span id="runtimeDetailStorageValue" class="runtime-detail-value">--</span></div>
             </section>
-            <section id="runtimeDetailsPlatformGroup" class="runtime-detail-group" aria-label="Platform">
-              <div class="runtime-detail-group-title">Platform</div>
-              <div class="runtime-detail-row"><span class="runtime-detail-label">Pi model</span><span id="runtimeDetailPiModelValue" class="runtime-detail-value">--</span></div>
-              <div class="runtime-detail-row"><span class="runtime-detail-label">OS</span><span id="runtimeDetailOsValue" class="runtime-detail-value">--</span></div>
-              <div class="runtime-detail-row"><span class="runtime-detail-label">Kernel</span><span id="runtimeDetailKernelValue" class="runtime-detail-value">--</span></div>
-              <div class="runtime-detail-row"><span class="runtime-detail-label">Bootloader</span><span id="runtimeDetailBootloaderValue" class="runtime-detail-value">--</span></div>
-              <div class="runtime-detail-row"><span class="runtime-detail-label">Firmware</span><span id="runtimeDetailFirmwareValue" class="runtime-detail-value">--</span></div>
-              <div class="runtime-detail-row"><span class="runtime-detail-label">Updated</span><span id="runtimeDetailUpdatedValue" class="runtime-detail-value">--</span></div>
+            <section id="runtimeDetailsPlatformGroup" class="runtime-detail-group" aria-label="Platform" data-i18n-aria-label="runtime.group.platform">
+              <div class="runtime-detail-group-title" data-i18n="runtime.group.platform">Platform</div>
+              <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.piModel">Pi model</span><span id="runtimeDetailPiModelValue" class="runtime-detail-value">--</span></div>
+              <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.os">OS</span><span id="runtimeDetailOsValue" class="runtime-detail-value">--</span></div>
+              <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.kernel">Kernel</span><span id="runtimeDetailKernelValue" class="runtime-detail-value">--</span></div>
+              <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.bootloader">Bootloader</span><span id="runtimeDetailBootloaderValue" class="runtime-detail-value">--</span></div>
+              <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.firmware">Firmware</span><span id="runtimeDetailFirmwareValue" class="runtime-detail-value">--</span></div>
+              <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.updated">Updated</span><span id="runtimeDetailUpdatedValue" class="runtime-detail-value">--</span></div>
             </section>
           </div>
         </div>
       </section>
       <div class="sidebar-chat-list-section">
         <div class="sidebar-chat-list-header">
-          <h3>Chats</h3>
-          <button id="newChatBtn" class="ghost-btn new-chat-btn" type="button">New chat</button>
-            <button id="deleteAllChatsBtn" class="ghost-btn" type="button" hidden>Delete all</button>
+          <h3 data-i18n="sidebar.chats">Chats</h3>
+          <button id="newChatBtn" class="ghost-btn new-chat-btn" type="button" data-i18n="sidebar.newChat">New chat</button>
+            <button id="deleteAllChatsBtn" class="ghost-btn" type="button" hidden data-i18n="sidebar.deleteAll">Delete all</button>
         </div>
         <div id="chatSessionList" class="chat-session-list"></div>
       </div>
       <div class="sidebar-actions">
-        <button id="settingsOpenBtn" class="ghost-btn sidebar-settings-btn" type="button">Settings</button>
+        <button id="settingsOpenBtn" class="ghost-btn sidebar-settings-btn" type="button" data-i18n="sidebar.settings">Settings</button>
       </div>
     </aside>
 
@@ -143,7 +143,7 @@
       </header>
 
       <div id="platformNotice" class="platform-notice" hidden aria-live="polite"></div>
-      <div id="throttleBanner" class="throttle-banner" hidden role="alert">⚠️ CPU throttling — consider active cooling</div>
+      <div id="throttleBanner" class="throttle-banner" hidden role="alert" data-i18n="throttle.banner">⚠️ CPU throttling — consider active cooling</div>
 
       <main id="appContainer"></main>
 
@@ -181,7 +181,7 @@
               <div class="settings-action-row full">
                 <button id="registerModelBtn" class="ghost-btn" type="button" data-i18n="addModel.addUrlBtn">Add URL model</button>
               </div>
-              <div id="modelUrlStatus" class="runtime-compact full" data-i18n="addModel.urlHint">Add an HTTPS .gguf URL to register another model. Pi 5 8 GB: up to ~8 GB with SSD, ~5 GB on SD card. Pi 4 8 GB: up to ~5 GB.</div>
+              <div id="modelUrlStatus" class="runtime-compact full">Add an HTTPS .gguf URL to register another model. Pi 5 8 GB: up to ~8 GB with SSD, ~5 GB on SD card. Pi 4 8 GB: up to ~5 GB.</div>
               <label class="full"><span data-i18n="addModel.uploadLabel">Upload local GGUF to Pi</span>
                 <input id="modelUploadInput" type="file" accept=".gguf,application/octet-stream">
               </label>
@@ -189,7 +189,7 @@
                 <button id="uploadModelBtn" class="ghost-btn" type="button" data-i18n="addModel.uploadBtn">Upload model</button>
                 <button id="cancelUploadBtn" class="ghost-btn" type="button" hidden data-i18n="addModel.cancelUpload">Cancel upload</button>
               </div>
-              <div id="modelUploadStatus" class="runtime-compact full" data-i18n="addModel.uploadIdle">No upload in progress.</div>
+              <div id="modelUploadStatus" class="runtime-compact full">No upload in progress.</div>
               <div class="settings-action-row full">
                 <button id="purgeModelsBtn" class="ghost-btn danger-btn" type="button" data-i18n="addModel.deleteAll">Delete all models</button>
               </div>
@@ -199,9 +199,9 @@
             <div class="selected-model-header">
               <div class="selected-model-header-copy">
                 <h3 class="settings-section-title" data-i18n="editor.selectedModel">Selected model</h3>
-                <div id="modelName" data-i18n="editor.checking">Checking...</div>
+                <div id="modelName">Checking...</div>
                 <div id="modelIdentityMeta" class="selected-model-meta" aria-live="polite"></div>
-                <div id="modelSettingsStatus" class="runtime-compact" data-i18n="editor.selectHint">Select a model to edit its chat and vision settings.</div>
+                <div id="modelSettingsStatus" class="runtime-compact">Select a model to edit its chat and vision settings.</div>
               </div>
               <div class="selected-model-header-actions">
                 <button id="discardModelSettingsBtn" class="ghost-btn" type="button" hidden data-i18n="editor.discard">Discard changes</button>
@@ -209,52 +209,52 @@
               </div>
             </div>
             <div id="modelCapabilitiesChips" class="settings-chip-row" aria-live="polite"></div>
-            <div id="modelCapabilitiesText" class="settings-section-note" data-i18n="editor.capabilitiesUnknown">Capabilities unknown.</div>
+            <div id="modelCapabilitiesText" class="settings-section-note">Capabilities unknown.</div>
             <section class="settings-subpanel full settings-chat-panel">
               <div class="settings-subpanel-header">
                 <h4 class="settings-subpanel-title" data-i18n="editor.chatProfile">Chat profile</h4>
               </div>
-              <label class="full">System Prompt (optional)
-                <textarea id="systemPrompt" placeholder="Set assistant behavior for this model"></textarea>
+              <label class="full"><span data-i18n="field.systemPrompt">System Prompt (optional)</span>
+                <textarea id="systemPrompt" placeholder="Set assistant behavior for this model" data-i18n-placeholder="field.systemPromptPh"></textarea>
               </label>
               <div class="settings-field-grid">
                 <label>
-                  <span class="settings-field-label">Generation Mode</span>
-                  <div class="settings-segmented" data-target="generationMode" role="group" aria-label="Generation Mode">
-                    <button type="button" class="settings-segment-btn" data-target="generationMode" data-value="random">Random</button>
-                    <button type="button" class="settings-segment-btn" data-target="generationMode" data-value="deterministic">Deterministic</button>
+                  <span class="settings-field-label" data-i18n="field.generationMode">Generation Mode</span>
+                  <div class="settings-segmented" data-target="generationMode" role="group" aria-label="Generation Mode" data-i18n-aria-label="field.generationMode">
+                    <button type="button" class="settings-segment-btn" data-target="generationMode" data-value="random" data-i18n="seg.random">Random</button>
+                    <button type="button" class="settings-segment-btn" data-target="generationMode" data-value="deterministic" data-i18n="seg.deterministic">Deterministic</button>
                   </div>
                   <input id="generationMode" type="hidden" value="random">
                 </label>
-                <label><span class="settings-field-label">Seed <span class="settings-field-hint">Only used in deterministic mode</span></span>
+                <label><span class="settings-field-label"><span data-i18n="field.seed">Seed</span> <span class="settings-field-hint" data-i18n="field.seedHint">Only used in deterministic mode</span></span>
                   <input id="seed" type="number" step="1">
                 </label>
-                <label><span class="settings-field-label">Temperature</span>
+                <label><span class="settings-field-label" data-i18n="field.temperature">Temperature</span>
                   <input id="temperature" type="number" step="0.1" min="0" max="2">
                 </label>
-                <label><span class="settings-field-label">Top P</span>
+                <label><span class="settings-field-label" data-i18n="field.topP">Top P</span>
                   <input id="top_p" type="number" step="0.1" min="0" max="1">
                 </label>
-                <label><span class="settings-field-label">Top K</span>
+                <label><span class="settings-field-label" data-i18n="field.topK">Top K</span>
                   <input id="top_k" type="number" step="1" min="0">
                 </label>
-                <label><span class="settings-field-label">Repetition Penalty</span>
+                <label><span class="settings-field-label" data-i18n="field.repetitionPenalty">Repetition Penalty</span>
                   <input id="repetition_penalty" type="number" step="0.1" min="0">
                 </label>
-                <label><span class="settings-field-label">Presence Penalty</span>
+                <label><span class="settings-field-label" data-i18n="field.presencePenalty">Presence Penalty</span>
                   <input id="presence_penalty" type="number" step="0.1">
                 </label>
-                <label><span class="settings-field-label">Max Tokens</span>
+                <label><span class="settings-field-label" data-i18n="field.maxTokens">Max Tokens</span>
                   <input id="max_tokens" type="number" step="1" min="1">
                 </label>
               </div>
             </section>
             <section id="settingsVisionSection" class="settings-subpanel full">
               <div class="settings-subpanel-header">
-                <h4 class="settings-subpanel-title">Vision</h4>
+                <h4 class="settings-subpanel-title" data-i18n="vision.title">Vision</h4>
                 <label class="settings-inline-toggle">
                   <input id="visionEnabled" type="checkbox">
-                  <span>Enable vision</span>
+                  <span data-i18n="vision.enable">Enable vision</span>
                 </label>
               </div>
               <div id="projectorStatusText" class="runtime-compact">No vision projector configured.</div>
@@ -267,12 +267,12 @@
       </div>
       <div id="settingsYamlPanel" class="settings-workspace-panel" hidden>
         <section class="settings-section full">
-          <h3 class="settings-section-title">Whole settings document</h3>
-          <div class="settings-section-note">Edit and apply the full settings document atomically.</div>
-          <textarea id="settingsYamlInput" class="settings-yaml-input" spellcheck="false" placeholder="Loading YAML..."></textarea>
+          <h3 class="settings-section-title" data-i18n="yaml.title">Whole settings document</h3>
+          <div class="settings-section-note" data-i18n="yaml.note">Edit and apply the full settings document atomically.</div>
+          <textarea id="settingsYamlInput" class="settings-yaml-input" spellcheck="false" placeholder="Loading YAML..." data-i18n-placeholder="yaml.inputPh"></textarea>
           <div class="settings-action-row full">
-            <button id="settingsYamlReloadBtn" class="ghost-btn" type="button">Reload YAML</button>
-            <button id="settingsYamlApplyBtn" class="ghost-btn" type="button">Apply YAML</button>
+            <button id="settingsYamlReloadBtn" class="ghost-btn" type="button" data-i18n="yaml.reload">Reload YAML</button>
+            <button id="settingsYamlApplyBtn" class="ghost-btn" type="button" data-i18n="yaml.apply">Apply YAML</button>
           </div>
           <div id="settingsYamlStatus" class="runtime-compact">No YAML loaded yet.</div>
         </section>
@@ -284,70 +284,70 @@
     <div class="settings-modal-shell">
       <div class="settings-modal-header">
         <div>
-          <h2 id="legacySettingsModalTitle" class="settings-modal-title">Advanced settings</h2>
-          <p class="settings-modal-note">Legacy runtime and diagnostic controls kept around during the migration.</p>
+          <h2 id="legacySettingsModalTitle" class="settings-modal-title" data-i18n="adv.title">Advanced settings</h2>
+          <p class="settings-modal-note" data-i18n="adv.subtitle">Legacy runtime and diagnostic controls kept around during the migration.</p>
         </div>
-        <button id="legacySettingsCloseBtn" class="ghost-btn settings-close-btn" type="button" aria-label="Close advanced settings">Close</button>
+        <button id="legacySettingsCloseBtn" class="ghost-btn settings-close-btn" type="button" aria-label="Close advanced settings" data-i18n="common.close" data-i18n-aria-label="adv.closeAria">Close</button>
       </div>
       <div class="settings-grid">
         <section id="legacySettingsRuntimeSection" class="settings-section full">
-          <h3 class="settings-section-title">Runtime</h3>
-          <div class="settings-section-note">Backend, memory loading, and compatibility for the active llama runtime.</div>
-          <h4 class="settings-subsection-title">Compatibility</h4>
+          <h3 class="settings-section-title" data-i18n="adv.runtime">Runtime</h3>
+          <div class="settings-section-note" data-i18n="adv.runtimeNote">Backend, memory loading, and compatibility for the active llama runtime.</div>
+          <h4 class="settings-subsection-title" data-i18n="adv.compatibility">Compatibility</h4>
           <label class="full" style="display:flex; align-items:center; gap:8px;">
             <input id="largeModelOverrideEnabled" type="checkbox">
-            <span>Allow unsupported large models (try anyway)</span>
+            <span data-i18n="adv.allowLarge">Allow unsupported large models (try anyway)</span>
           </label>
           <div class="settings-action-row full">
-            <button id="applyLargeModelOverrideBtn" class="ghost-btn" type="button">Apply compatibility override</button>
+            <button id="applyLargeModelOverrideBtn" class="ghost-btn" type="button" data-i18n="adv.applyCompat">Apply compatibility override</button>
           </div>
           <div id="largeModelOverrideStatus" class="runtime-compact">Compatibility override: default warnings</div>
-          <h4 class="settings-subsection-title">Memory loading</h4>
-          <label class="full">GGUF loading mode (requires runtime restart)
+          <h4 class="settings-subsection-title" data-i18n="adv.memoryLoading">Memory loading</h4>
+          <label class="full"><span data-i18n="adv.ggufMode">GGUF loading mode (requires runtime restart)</span>
             <select id="llamaMemoryLoadingMode">
-              <option value="auto">Automatic (profile-based)</option>
-              <option value="full_ram">Full RAM load (--no-mmap)</option>
-              <option value="mmap">Memory-mapped (mmap)</option>
+              <option value="auto" data-i18n="adv.ggufAuto">Automatic (profile-based)</option>
+              <option value="full_ram" data-i18n="adv.ggufFullRam">Full RAM load (--no-mmap)</option>
+              <option value="mmap" data-i18n="adv.ggufMmap">Memory-mapped (mmap)</option>
             </select>
           </label>
           <div class="settings-action-row full">
-            <button id="applyLlamaMemoryLoadingBtn" class="ghost-btn" type="button">Apply memory loading + restart</button>
+            <button id="applyLlamaMemoryLoadingBtn" class="ghost-btn" type="button" data-i18n="adv.applyMemory">Apply memory loading + restart</button>
           </div>
           <div id="llamaMemoryLoadingStatus" class="runtime-compact">Current memory loading: unknown</div>
           <div class="full">
-            <h4 class="settings-subsection-title">Llama Runtime</h4>
+            <h4 class="settings-subsection-title" data-i18n="adv.llamaRuntime">Llama Runtime</h4>
             <div id="llamaRuntimeCurrent" class="runtime-compact">Current runtime: unknown</div>
-            <label class="full">Runtime family
+            <label class="full"><span data-i18n="adv.runtimeFamily">Runtime family</span>
               <select id="llamaRuntimeFamilySelect">
-                <option value="">No runtimes available</option>
+                <option value="" data-i18n="adv.noRuntimes">No runtimes available</option>
               </select>
             </label>
             <div class="settings-action-row full">
-              <button id="switchLlamaRuntimeBtn" class="ghost-btn" type="button">Switch runtime</button>
+              <button id="switchLlamaRuntimeBtn" class="ghost-btn" type="button" data-i18n="adv.switchRuntime">Switch runtime</button>
             </div>
             <div id="llamaRuntimeSwitchStatus" class="runtime-compact">No runtime switch in progress.</div>
           </div>
         </section>
         <section class="settings-section full">
-          <h3 class="settings-section-title">Diagnostics</h3>
-          <div class="settings-section-note">Recovery actions. Use if the model is stuck or memory needs clearing.</div>
+          <h3 class="settings-section-title" data-i18n="adv.diagnostics">Diagnostics</h3>
+          <div class="settings-section-note" data-i18n="adv.diagnosticsNote">Recovery actions. Use if the model is stuck or memory needs clearing.</div>
           <div class="settings-action-row full">
-            <button id="resetRuntimeBtn" class="ghost-btn danger-btn" type="button">Unload model + clean memory + restart</button>
+            <button id="resetRuntimeBtn" class="ghost-btn danger-btn" type="button" data-i18n="adv.resetRuntime">Unload model + clean memory + restart</button>
           </div>
         </section>
         <section class="settings-section full">
-          <h3 class="settings-section-title">Power calibration</h3>
+          <h3 class="settings-section-title" data-i18n="adv.powerCalibration">Power calibration</h3>
           <details id="settingsPowerCalibration" class="settings-subdetails full" open>
-            <summary>PMIC to wall-meter calibration</summary>
-            <div class="settings-section-note">Optional wall-meter calibration for Pi 5 power estimates.</div>
+            <summary data-i18n="adv.pmicCalib">PMIC to wall-meter calibration</summary>
+            <div class="settings-section-note" data-i18n="adv.pmicNote">Optional wall-meter calibration for Pi 5 power estimates.</div>
             <div id="powerCalibrationLiveStatus" class="runtime-compact">Current PMIC raw power: --</div>
-            <label class="full">Wall meter reading (W)
+            <label class="full"><span data-i18n="adv.wallMeter">Wall meter reading (W)</span>
               <input id="powerCalibrationWallWatts" type="number" min="0" step="0.01" placeholder="e.g. 9.4">
             </label>
             <div class="settings-action-row full">
-              <button id="capturePowerCalibrationSampleBtn" class="ghost-btn" type="button">Capture calibration sample</button>
-              <button id="fitPowerCalibrationBtn" class="ghost-btn" type="button">Compute calibration</button>
-              <button id="resetPowerCalibrationBtn" class="ghost-btn danger-btn" type="button">Reset calibration</button>
+              <button id="capturePowerCalibrationSampleBtn" class="ghost-btn" type="button" data-i18n="adv.captureSample">Capture calibration sample</button>
+              <button id="fitPowerCalibrationBtn" class="ghost-btn" type="button" data-i18n="adv.computeCalib">Compute calibration</button>
+              <button id="resetPowerCalibrationBtn" class="ghost-btn danger-btn" type="button" data-i18n="adv.resetCalib">Reset calibration</button>
             </div>
             <div id="powerCalibrationStatus" class="runtime-compact">Power calibration: default correction</div>
           </details>
@@ -361,10 +361,10 @@
     <div class="settings-modal-shell changelog-modal-shell">
       <div class="settings-modal-header">
         <div>
-          <h2 id="changelogModalTitle" class="settings-modal-title">What's new</h2>
+          <h2 id="changelogModalTitle" class="settings-modal-title" data-i18n="changelog.title">What's new</h2>
           <p id="changelogModalSubtitle" class="settings-modal-note"></p>
         </div>
-        <button id="changelogCloseBtn" class="ghost-btn settings-close-btn" type="button" aria-label="Close">Close</button>
+        <button id="changelogCloseBtn" class="ghost-btn settings-close-btn" type="button" aria-label="Close" data-i18n="common.close" data-i18n-aria-label="common.close">Close</button>
       </div>
       <div id="changelogContent" class="changelog-content"></div>
     </div>
@@ -375,12 +375,12 @@
     <div class="settings-modal-shell terminal-modal-shell">
       <div class="settings-modal-header terminal-modal-header">
         <div>
-          <h2 id="terminalModalTitle" class="settings-modal-title">Terminal</h2>
+          <h2 id="terminalModalTitle" class="settings-modal-title" data-i18n="terminal.title">Terminal</h2>
           <p id="terminalStatusText" class="settings-modal-note">Connecting...</p>
         </div>
         <div class="settings-modal-header-actions">
-          <button id="terminalReconnectBtn" class="ghost-btn" type="button" hidden>Reconnect</button>
-          <button id="terminalCloseBtn" class="ghost-btn settings-close-btn" type="button" aria-label="Close terminal">Close</button>
+          <button id="terminalReconnectBtn" class="ghost-btn" type="button" hidden data-i18n="terminal.reconnect">Reconnect</button>
+          <button id="terminalCloseBtn" class="ghost-btn settings-close-btn" type="button" aria-label="Close terminal" data-i18n="common.close" data-i18n-aria-label="terminal.closeAria">Close</button>
         </div>
       </div>
       <div id="terminalContainer" class="terminal-container"></div>

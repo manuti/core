@@ -1,5 +1,7 @@
 "use strict";
 
+import { applyTranslations } from "/assets/i18n.js";
+
 let _styleLink = null;
 let _chatModule = null;
 
@@ -7,6 +9,8 @@ export async function init(container, shellApi) {
   // 1. Fetch and inject chat HTML fragment
   const res = await fetch("/app/chat/assets/chat.html");
   container.innerHTML = await res.text();
+  // Translate the freshly-injected fragment (locale is already loaded by the shell).
+  applyTranslations(container);
 
   // 2. Load chat CSS
   _styleLink = document.createElement("link");
