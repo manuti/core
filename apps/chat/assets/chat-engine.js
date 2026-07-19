@@ -29,7 +29,10 @@ import { saveActiveSession } from "./session-manager.js";
       if (
         requestCtx?.hasImageRequest
         && (
+          // llama.cpp wording
           normalized.includes("image input is not supported")
+          // inferno / LiteRT wording (litert_adapter.py)
+          || normalized.includes("vision input is not supported")
           || normalized.includes("mmproj")
         )
       ) {
