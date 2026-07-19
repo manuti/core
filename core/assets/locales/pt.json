@@ -448,5 +448,15 @@
   "ih.meta": "{name} ({size})",
   "ih.changeImage": "Change image",
   "ih.couldNotRead": "Could not read the selected image.",
-  "ih.describePrompt": "Describe this image."
+  "ih.describePrompt": "Describe this image.",
+  "su.unknownModelUnavailable": "Unknown model (status unavailable)",
+  "chat.confirmDeleteAll": "Delete all chats? This cannot be undone.",
+  "editMsg.noteGenerating": "Update the message, stop the current reply, and restart from this point.",
+  "editMsg.hintGenerating": "Sending will cancel the in-progress response and replace everything from this turn onward.",
+  "editMsg.cancelSend": "Cancel & send",
+  "theme.switchToDark": "Switch to dark theme",
+  "theme.switchToLight": "Switch to light theme",
+  "su.encoderErr2": "Could not download encoder: {err}",
+  "ui.statusWarning": "Status warning: {msg}",
+  "ui.statusError": "Status error: {msg}"
 }

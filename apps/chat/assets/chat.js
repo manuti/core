@@ -1,6 +1,7 @@
 "use strict";
 
 import { appState } from "/assets/state.js";
+import { t } from "/assets/i18n.js";
 import { registerAppendMessage, registerSetMessageMeta, startNewChat, deleteSession, deleteAllSessions, loadSessionIntoView, initSessionManager } from "./session-manager.js";
 import { registerUpdateCallbacks } from "/assets/update-ui.js";
 import { registerOpenEditMessageModal, getMessagesBox, isMessagesPinned, setMessagesPinnedState, hasActiveMessageSelection, appendMessage, setMessageMeta, removeMessage } from "./messages.js";
@@ -69,16 +70,16 @@ import { registerAppSendEnabled } from "/assets/shell.js";
       const isGenerating = Boolean(state?.wasGenerating);
       if (note) {
         note.textContent = isGenerating
-          ? "Update the message, stop the current reply, and restart from this point."
-          : "Update the message and resend from this point in the conversation.";
+          ? t("editMsg.noteGenerating")
+          : t("editMsg.note");
       }
       if (hint) {
         hint.textContent = isGenerating
-          ? "Sending will cancel the in-progress response and replace everything from this turn onward."
-          : "Everything after this turn will be replaced by the new run.";
+          ? t("editMsg.hintGenerating")
+          : t("editMsg.hint");
       }
       if (sendBtn) {
-        sendBtn.textContent = isGenerating ? "Cancel & send" : "Send";
+        sendBtn.textContent = isGenerating ? t("editMsg.cancelSend") : t("common.send");
       }
     }
 
@@ -281,7 +282,7 @@ export function init(shellApi) {
 
     document.getElementById("newChatBtn").addEventListener("click", () => startNewChat());
     document.getElementById("deleteAllChatsBtn").addEventListener("click", () => {
-      if (!window.confirm("Delete all chats? This cannot be undone.")) return;
+      if (!window.confirm(t("chat.confirmDeleteAll"))) return;
       deleteAllSessions();
     });
     document.getElementById("chatSessionList").addEventListener("click", (event) => {

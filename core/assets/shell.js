@@ -112,9 +112,9 @@ import { registerPlatformShell } from "./platform-controls.js";
       const resolved = theme === "light" ? "light" : "dark";
       document.documentElement.setAttribute("data-theme", resolved);
       const toggle = document.getElementById("themeToggle");
-      const target = resolved === "dark" ? "light" : "dark";
-      toggle.setAttribute("aria-label", `Switch to ${target} theme`);
-      toggle.setAttribute("title", `Switch to ${target} theme`);
+      const label = resolved === "dark" ? t("theme.switchToLight") : t("theme.switchToDark");
+      toggle.setAttribute("aria-label", label);
+      toggle.setAttribute("title", label);
     }
 
     function toggleTheme() {
@@ -223,14 +223,14 @@ import { registerPlatformShell } from "./platform-controls.js";
         const statusErrText = err?.name === "AbortError" ? "request timeout" : String(err);
         if (appState.latestStatus && typeof appState.latestStatus === "object" && appState.latestStatus.state && appState.latestStatus.state !== "DOWN") {
           const warnEl = document.getElementById("statusText");
-          if (warnEl) warnEl.textContent = `Status warning: ${statusErrText}`;
+          if (warnEl) warnEl.textContent = t("ui.statusWarning", { msg: statusErrText });
           renderStatusActions({});
           return appState.latestStatus;
         }
         appState.latestStatus = {
           state: "DOWN",
           model_present: false,
-          model: { filename: "Unknown model", active_model_id: null },
+          model: { filename: t("su.unknownModel"), active_model_id: null },
           models: [],
           download: {
             percent: 0,
@@ -296,11 +296,11 @@ import { registerPlatformShell } from "./platform-controls.js";
           },
         };
         const errEl = document.getElementById("statusText");
-        if (errEl) errEl.textContent = `Status error: ${statusErrText}`;
+        if (errEl) errEl.textContent = t("ui.statusError", { msg: statusErrText });
         renderStatusActions({});
         const modelNameField = document.getElementById("modelName");
         if (modelNameField) {
-          modelNameField.textContent = "Unknown model (status unavailable)";
+          modelNameField.textContent = t("su.unknownModelUnavailable");
         }
         updateLlamaIndicator(appState.latestStatus);
         renderDownloadPrompt(appState.latestStatus);

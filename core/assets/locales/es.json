@@ -448,5 +448,15 @@
   "ih.meta": "{name} ({size})",
   "ih.changeImage": "Cambiar imagen",
   "ih.couldNotRead": "No se pudo leer la imagen seleccionada.",
-  "ih.describePrompt": "Describe esta imagen."
+  "ih.describePrompt": "Describe esta imagen.",
+  "su.unknownModelUnavailable": "Modelo desconocido (estado no disponible)",
+  "chat.confirmDeleteAll": "¿Eliminar todos los chats? Esto no se puede deshacer.",
+  "editMsg.noteGenerating": "Actualiza el mensaje, detén la respuesta actual y reinicia desde este punto.",
+  "editMsg.hintGenerating": "Al enviar se cancelará la respuesta en curso y se reemplazará todo a partir de este turno.",
+  "editMsg.cancelSend": "Cancelar y enviar",
+  "theme.switchToDark": "Cambiar a tema oscuro",
+  "theme.switchToLight": "Cambiar a tema claro",
+  "su.encoderErr2": "No se pudo descargar el codificador: {err}",
+  "ui.statusWarning": "Aviso de estado: {msg}",
+  "ui.statusError": "Error de estado: {msg}"
 }

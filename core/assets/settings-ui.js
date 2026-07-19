@@ -902,7 +902,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
         if (statusEl) statusEl.textContent = t("su.encoderReady", { file: body?.projector_filename || t("su.encoderDownloaded") });
         if (_platform.pollStatus) await _platform.pollStatus();
       } catch (err) {
-        if (statusEl) statusEl.textContent = `Could not download encoder: ${err}`;
+        if (statusEl) statusEl.textContent = t("su.encoderErr2", { err });
       } finally {
         appState.projectorDownloadInFlight = false;
         if (button) button.disabled = false;
