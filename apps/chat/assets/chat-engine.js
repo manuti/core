@@ -2,6 +2,7 @@
 
 import { appState, PREFILL_METRICS_KEY, PREFILL_PROGRESS_CAP, PREFILL_PROGRESS_TAIL_START, PREFILL_PROGRESS_FLOOR, PREFILL_TICK_MS, PREFILL_FINISH_DURATION_MS, PREFILL_FINISH_TICK_MS, PREFILL_FINISH_HOLD_MS, STATUS_CHIP_MIN_VISIBLE_MS, IMAGE_CANCEL_RECOVERY_DELAY_MS, IMAGE_CANCEL_RESTART_DELAY_MS } from "/assets/state.js";
 import { postJson } from "/assets/utils.js";
+import { t } from "/assets/i18n.js";
 import { appendMessage, updateMessage, setMessageProcessingState, setMessageMeta, setMessageActionsVisible, removeMessage } from "./messages.js";
 import { clearPendingImage, buildUserMessageContent, buildUserBubblePayload, cancelPendingImageWork } from "./image-handler.js";
 import { collectSettings, resolveSeedForRequest, activeRuntimeVisionCapability, showTextOnlyImageBlockedState, renderComposerCapabilities, formatImageRejectedNotice } from "/assets/settings-ui.js";
@@ -21,7 +22,7 @@ import { saveActiveSession } from "./session-manager.js";
 
     export function formatChatFailureMessage(statusCode, body, requestCtx = {}) {
       if (statusCode === 429) {
-        return "Potato is busy with another request. Try again in a moment.";
+        return t("ce.busy");
       }
       const apiMessage = extractApiErrorMessage(body);
       const normalized = apiMessage.toLowerCase();
@@ -35,9 +36,9 @@ import { saveActiveSession } from "./session-manager.js";
         return formatImageRejectedNotice(appState.latestStatus);
       }
       if (apiMessage) {
-        return `Request failed (${statusCode}): ${apiMessage}`;
+        return t("ce.reqFailedMsg", { code: statusCode, msg: apiMessage });
       }
-      return `Request failed (${statusCode}).`;
+      return t("ce.reqFailed", { code: statusCode });
     }
 
     export function setSendEnabled() {
@@ -47,27 +48,27 @@ import { saveActiveSession } from "./session-manager.js";
       const ready = appState.latestStatus && state === "READY";
       if (appState.requestInFlight) {
         sendBtn.disabled = false;
-        sendBtn.textContent = "Stop";
+        sendBtn.textContent = t("common.stop");
         sendBtn.classList.add("stop-mode");
         if (userPrompt) userPrompt.disabled = false;
         renderComposerCapabilities(appState.latestStatus);
         return;
       }
-      sendBtn.textContent = "Send";
+      sendBtn.textContent = t("common.send");
       sendBtn.classList.remove("stop-mode");
       sendBtn.disabled = !ready;
       if (userPrompt) {
         userPrompt.disabled = !ready;
         if (!ready) {
           const placeholders = {
-            DOWNLOADING: "Downloading model — please wait…",
-            LOADING: "Loading model into memory…",
-            BOOTING: "Starting inference engine…",
-            DOWN: "Service unavailable",
+            DOWNLOADING: t("ce.phDownloading"),
+            LOADING: t("ce.phLoading"),
+            BOOTING: t("ce.phBooting"),
+            DOWN: t("ce.phDown"),
           };
-          userPrompt.placeholder = placeholders[state] || "Waiting for model to be ready…";
+          userPrompt.placeholder = placeholders[state] || t("ce.phWaiting");
         } else {
-          userPrompt.placeholder = "Message Potato OS…";
+          userPrompt.placeholder = t("composer.messagePh");
         }
       }
       renderComposerCapabilities(appState.latestStatus);
@@ -213,7 +214,7 @@ import { saveActiveSession } from "./session-manager.js";
         finishResolve: null,
       };
 
-      setComposerActivity("Preparing prompt...");
+      setComposerActivity(t("ce.preparingPrompt"));
       applyPrefillProgressState(requestCtx, initialProgress);
 
       appState.activePrefillProgress.timerId = window.setInterval(() => {
@@ -354,10 +355,10 @@ import { saveActiveSession } from "./session-manager.js";
 
     function applyPrefillProgressState(requestCtx, percent) {
       const safePercent = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
-      setComposerStatusChip(`Preparing prompt • ${safePercent}%`, { phase: "prefill" });
+      setComposerStatusChip(t("ce.preparingPct", { pct: safePercent }), { phase: "prefill" });
       setMessageProcessingState(requestCtx?.assistantView, {
         phase: "prefill",
-        label: "Prompt processing",
+        label: t("ce.promptProcessing"),
         percent: safePercent,
       });
     }
@@ -430,25 +431,25 @@ import { saveActiveSession } from "./session-manager.js";
     function formatReasoningOnlyMessage(reasoningText) {
       const text = String(reasoningText || "").trim();
       if (!text) return "(empty response)";
-      return `Thinking...\n\n${text}`;
+      return t("ce.thinking", { text });
     }
 
     function formatStopReason(reason) {
       switch (reason) {
         case "stop":
-          return "EOS Token found";
+          return t("ce.stopEos");
         case "length":
-          return "Max tokens reached";
+          return t("ce.stopMax");
         case "tool_calls":
-          return "Tool calls emitted";
+          return t("ce.stopTool");
         case "cancelled":
-          return "Stopped by user";
+          return t("ce.stopUser");
         case "disconnected":
-          return "Connection lost";
+          return t("ce.stopConn");
         case null:
         case undefined:
         case "":
-          return "Unknown";
+          return t("ce.stopUnknown");
         default:
           return String(reason);
       }
@@ -489,7 +490,7 @@ import { saveActiveSession } from "./session-manager.js";
       const finishReason = source?.finish_reason ?? source?.choices?.[0]?.finish_reason ?? null;
       const ttftMs = resolveTimeToFirstTokenMs(source, firstTokenLatencyMs);
       const ttftText = ttftMs > 0 ? `${(ttftMs / 1000).toFixed(2)}s` : "--";
-      return `TTFT ${ttftText} · ${tokPerSecond.toFixed(2)} tok/sec · ${tokens} tokens · ${seconds.toFixed(2)}s · Stop reason: ${formatStopReason(finishReason)}`;
+      return t("ce.stats", { ttft: ttftText, tps: tokPerSecond.toFixed(2), tokens, secs: seconds.toFixed(2), reason: formatStopReason(finishReason) });
     }
 
     export function canSendNow() {
@@ -499,13 +500,13 @@ import { saveActiveSession } from "./session-manager.js";
     export function notifyNotReadyToSend() {
       const state = String(appState.latestStatus?.state || "").toUpperCase();
       const messages = {
-        DOWNLOADING: "Model is still downloading — it'll be ready shortly.",
-        LOADING: "Model is loading into memory…",
-        BOOTING: "Starting the inference engine…",
-        DOWN: "Model is unavailable right now.",
-        ERROR: "Model is in an error state — check the status panel.",
+        DOWNLOADING: t("ce.nrDownloading"),
+        LOADING: t("ce.nrLoading"),
+        BOOTING: t("ce.nrBooting"),
+        DOWN: t("ce.nrDown"),
+        ERROR: t("ce.nrError"),
       };
-      setComposerActivity(messages[state] || "Waiting for the model to be ready…");
+      setComposerActivity(messages[state] || t("ce.nrWaiting"));
     }
 
     export async function sendChat() {
@@ -764,10 +765,10 @@ import { saveActiveSession } from "./session-manager.js";
               const elapsedSeconds = Math.max(0, (performance.now() - requestStartMs) / 1000);
               setMessageMeta(activeAssistantView, formatAssistantStats(streamStats, elapsedSeconds, requestCtx.firstTokenLatencyMs));
             } else {
-              updateMessage(activeAssistantView, `Request error: ${err}`, { showActions: true });
+              updateMessage(activeAssistantView, t("ce.reqError", { err }), { showActions: true });
             }
           } else {
-            appendMessage("assistant", `Request error: ${err}`);
+            appendMessage("assistant", t("ce.reqError", { err }));
           }
         }
       } finally {
@@ -843,8 +844,8 @@ import { saveActiveSession } from "./session-manager.js";
         if (healthy) {
           return;
         }
-        setComposerActivity("Restarting model after stalled cancel...");
-        setComposerStatusChip("Restarting model...", { phase: "cancel" });
+        setComposerActivity(t("ce.restartStalled"));
+        setComposerStatusChip(t("ce.restartingModel"), { phase: "cancel" });
         await requestLlamaRestart("image_cancel_stalled");
         if (_ui.pollStatus) await _ui.pollStatus();
         setComposerActivity("");
@@ -868,8 +869,8 @@ import { saveActiveSession } from "./session-manager.js";
         if (healthy) {
           return;
         }
-        setComposerActivity("Recovering model after image cancel...");
-        setComposerStatusChip("Recovering model...", { phase: "cancel" });
+        setComposerActivity(t("ce.recoveringImage"));
+        setComposerStatusChip(t("ce.recoveringModel"), { phase: "cancel" });
         const recovery = await requestLlamaCancelRecovery("image_cancel_timeout");
         if (recovery?.cancelled) {
           setComposerActivity("");
@@ -877,14 +878,14 @@ import { saveActiveSession } from "./session-manager.js";
           return;
         }
         if (recovery?.restarted) {
-          setComposerActivity("Restarting model...");
+          setComposerActivity(t("ce.restartingModel"));
           if (_ui.pollStatus) await _ui.pollStatus();
           setComposerActivity("");
           hideComposerStatusChip();
           return;
         }
-        setComposerActivity("Waiting for model to finish cancel...");
-        setComposerStatusChip("Finalizing cancel...", { phase: "cancel" });
+        setComposerActivity(t("ce.waitingCancel"));
+        setComposerStatusChip(t("ce.finalizingCancel"), { phase: "cancel" });
         scheduleImageCancelRestartFallback();
       }, IMAGE_CANCEL_RECOVERY_DELAY_MS);
     }
@@ -893,7 +894,7 @@ import { saveActiveSession } from "./session-manager.js";
       if (appState.pendingImageReader) {
         cancelPendingImageWork();
         clearPendingImage();
-        setComposerActivity("Image load cancelled.");
+        setComposerActivity(t("ce.imageCancelled"));
         hideComposerStatusChip();
         setCancelEnabled(false);
         return;
@@ -901,8 +902,8 @@ import { saveActiveSession } from "./session-manager.js";
       if (appState.requestInFlight) {
         const current = appState.activeRequest;
         stopPrefillProgress({ resetUi: false });
-        setComposerActivity("Cancelling...");
-        setComposerStatusChip("Cancelling...", { phase: "cancel" });
+        setComposerActivity(t("ce.cancelling"));
+        setComposerStatusChip(t("ce.cancelling"), { phase: "cancel" });
         setCancelEnabled(false);
         if (current && current.assistantView?.bubble?.classList?.contains("processing")) {
           current.hideProcessingBubbleOnCancel = true;
