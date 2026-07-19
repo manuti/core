@@ -1,0 +1,31 @@
+{
+  "settings.title": "Settings",
+  "settings.subtitle": "Model profiles, downloads, vision encoders, and YAML in one place.",
+  "settings.advanced": "Advanced",
+  "settings.advancedAria": "Open advanced settings",
+  "settings.advancedTitle": "Advanced settings",
+  "settings.close": "Close",
+  "settings.closeAria": "Close settings",
+  "settings.tablistAria": "Settings views",
+  "settings.tabModel": "Model",
+  "settings.tabYaml": "YAML",
+
+  "addModel.summary": "Add a model (URL or upload)",
+  "addModel.byUrl": "Add model by URL",
+  "addModel.hfToken": "HuggingFace token (optional, for gated models)",
+  "addModel.addUrlBtn": "Add URL model",
+  "addModel.urlHint": "Add an HTTPS .gguf URL to register another model. Pi 5 8 GB: up to ~8 GB with SSD, ~5 GB on SD card. Pi 4 8 GB: up to ~5 GB.",
+  "addModel.uploadLabel": "Upload local GGUF to Pi",
+  "addModel.uploadBtn": "Upload model",
+  "addModel.cancelUpload": "Cancel upload",
+  "addModel.uploadIdle": "No upload in progress.",
+  "addModel.deleteAll": "Delete all models",
+
+  "editor.selectedModel": "Selected model",
+  "editor.checking": "Checking...",
+  "editor.selectHint": "Select a model to edit its chat and vision settings.",
+  "editor.discard": "Discard changes",
+  "editor.save": "Save model settings",
+  "editor.capabilitiesUnknown": "Capabilities unknown.",
+  "editor.chatProfile": "Chat profile"
+}

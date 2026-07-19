@@ -1,6 +1,7 @@
 "use strict";
 
 import "./csrf.js"; // must be first — installs the same-origin CSRF fetch wrapper
+import { initI18n, applyTranslations } from "./i18n.js";
 import { appState, defaultSettings, STATUS_POLL_TIMEOUT_MS } from "./state.js";
 import { formatCountdownSeconds } from "./utils.js";
 import { isLocalModelConnected, updateLlamaIndicator, renderDownloadPrompt, renderStatusActions, renderCompatibilityWarnings, formatSidebarStatusDetail, findResumableFailedModel } from "./status.js";
@@ -490,6 +491,11 @@ import { registerPlatformShell } from "./platform-controls.js";
       }
     }
 
+    // Load translations (English fallback + active locale) before hydrating,
+    // so static markup renders in the chosen language from the first paint.
+    await initI18n().catch((err) => { console.error("i18n init failed:", err); });
+    applyTranslations(document);
+
     // Discover apps, then load the first available UI app, then start polling
     const appContainer = document.getElementById("appContainer");
     if (appContainer) {
@@ -502,7 +508,7 @@ import { registerPlatformShell } from "./platform-controls.js";
         if (saved && saved !== firstApp && _appRegistry[saved]) {
           await switchApp(saved);
         }
-      }).then(() => startPollingLoop()).catch(() => startPollingLoop());
+      }).then(() => { applyTranslations(document); startPollingLoop(); }).catch(() => startPollingLoop());
     } else {
       startPollingLoop();
     }

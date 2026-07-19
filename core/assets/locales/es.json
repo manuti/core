@@ -1,0 +1,31 @@
+{
+  "settings.title": "Ajustes",
+  "settings.subtitle": "Perfiles de modelo, descargas, codificadores de visión y YAML en un solo sitio.",
+  "settings.advanced": "Avanzado",
+  "settings.advancedAria": "Abrir ajustes avanzados",
+  "settings.advancedTitle": "Ajustes avanzados",
+  "settings.close": "Cerrar",
+  "settings.closeAria": "Cerrar ajustes",
+  "settings.tablistAria": "Vistas de ajustes",
+  "settings.tabModel": "Modelo",
+  "settings.tabYaml": "YAML",
+
+  "addModel.summary": "Añadir un modelo (URL o subida)",
+  "addModel.byUrl": "Añadir modelo por URL",
+  "addModel.hfToken": "Token de HuggingFace (opcional, para modelos restringidos)",
+  "addModel.addUrlBtn": "Añadir modelo por URL",
+  "addModel.urlHint": "Añade una URL HTTPS .gguf para registrar otro modelo. Pi 5 8 GB: hasta ~8 GB con SSD, ~5 GB en tarjeta SD. Pi 4 8 GB: hasta ~5 GB.",
+  "addModel.uploadLabel": "Subir GGUF local a la Pi",
+  "addModel.uploadBtn": "Subir modelo",
+  "addModel.cancelUpload": "Cancelar subida",
+  "addModel.uploadIdle": "No hay ninguna subida en curso.",
+  "addModel.deleteAll": "Eliminar todos los modelos",
+
+  "editor.selectedModel": "Modelo seleccionado",
+  "editor.checking": "Comprobando...",
+  "editor.selectHint": "Selecciona un modelo para editar sus ajustes de chat y visión.",
+  "editor.discard": "Descartar cambios",
+  "editor.save": "Guardar ajustes del modelo",
+  "editor.capabilitiesUnknown": "Capacidades desconocidas.",
+  "editor.chatProfile": "Perfil de chat"
+}

@@ -154,65 +154,65 @@
     <div class="settings-modal-shell settings-workspace-shell">
       <div class="settings-modal-header">
         <div>
-          <h2 id="settingsModalTitle" class="settings-modal-title">Settings</h2>
-          <p class="settings-modal-note">Model profiles, downloads, vision encoders, and YAML in one place.</p>
+          <h2 id="settingsModalTitle" class="settings-modal-title" data-i18n="settings.title">Settings</h2>
+          <p class="settings-modal-note" data-i18n="settings.subtitle">Model profiles, downloads, vision encoders, and YAML in one place.</p>
         </div>
         <div class="settings-modal-header-actions">
-          <button id="settingsAdvancedBtn" class="ghost-btn settings-advanced-btn" type="button" aria-label="Open advanced settings" title="Advanced settings">Advanced</button>
-          <button id="settingsCloseBtn" class="ghost-btn settings-close-btn" type="button" aria-label="Close settings">Close</button>
+          <button id="settingsAdvancedBtn" class="ghost-btn settings-advanced-btn" type="button" aria-label="Open advanced settings" title="Advanced settings" data-i18n="settings.advanced" data-i18n-aria-label="settings.advancedAria" data-i18n-title="settings.advancedTitle">Advanced</button>
+          <button id="settingsCloseBtn" class="ghost-btn settings-close-btn" type="button" aria-label="Close settings" data-i18n="settings.close" data-i18n-aria-label="settings.closeAria">Close</button>
         </div>
       </div>
-      <div class="settings-workspace-tabs" role="tablist" aria-label="Settings views">
-        <button id="settingsWorkspaceTabModel" class="settings-workspace-tab active" type="button" role="tab" aria-selected="true">Model</button>
-        <button id="settingsWorkspaceTabYaml" class="settings-workspace-tab" type="button" role="tab" aria-selected="false">YAML</button>
+      <div class="settings-workspace-tabs" role="tablist" aria-label="Settings views" data-i18n-aria-label="settings.tablistAria">
+        <button id="settingsWorkspaceTabModel" class="settings-workspace-tab active" type="button" role="tab" aria-selected="true" data-i18n="settings.tabModel">Model</button>
+        <button id="settingsWorkspaceTabYaml" class="settings-workspace-tab" type="button" role="tab" aria-selected="false" data-i18n="settings.tabYaml">YAML</button>
       </div>
       <div id="settingsModelWorkspace" class="settings-workspace-panel">
         <div class="settings-workspace-stack">
           <div id="modelsList" class="settings-model-bar"></div>
           <details class="settings-add-model">
-            <summary>Add a model (URL or upload)</summary>
+            <summary data-i18n="addModel.summary">Add a model (URL or upload)</summary>
             <div class="settings-add-model-body">
-              <label class="full">Add model by URL
+              <label class="full"><span data-i18n="addModel.byUrl">Add model by URL</span>
                 <input id="modelUrlInput" type="url" placeholder="https://.../model.gguf">
               </label>
-              <label class="full">HuggingFace token (optional, for gated models)
+              <label class="full"><span data-i18n="addModel.hfToken">HuggingFace token (optional, for gated models)</span>
                 <input id="hfTokenInput" type="password" placeholder="hf_...">
               </label>
               <div class="settings-action-row full">
-                <button id="registerModelBtn" class="ghost-btn" type="button">Add URL model</button>
+                <button id="registerModelBtn" class="ghost-btn" type="button" data-i18n="addModel.addUrlBtn">Add URL model</button>
               </div>
-              <div id="modelUrlStatus" class="runtime-compact full">Add an HTTPS .gguf URL to register another model. Pi 5 8 GB: up to ~8 GB with SSD, ~5 GB on SD card. Pi 4 8 GB: up to ~5 GB.</div>
-              <label class="full">Upload local GGUF to Pi
+              <div id="modelUrlStatus" class="runtime-compact full" data-i18n="addModel.urlHint">Add an HTTPS .gguf URL to register another model. Pi 5 8 GB: up to ~8 GB with SSD, ~5 GB on SD card. Pi 4 8 GB: up to ~5 GB.</div>
+              <label class="full"><span data-i18n="addModel.uploadLabel">Upload local GGUF to Pi</span>
                 <input id="modelUploadInput" type="file" accept=".gguf,application/octet-stream">
               </label>
               <div class="settings-action-row full">
-                <button id="uploadModelBtn" class="ghost-btn" type="button">Upload model</button>
-                <button id="cancelUploadBtn" class="ghost-btn" type="button" hidden>Cancel upload</button>
+                <button id="uploadModelBtn" class="ghost-btn" type="button" data-i18n="addModel.uploadBtn">Upload model</button>
+                <button id="cancelUploadBtn" class="ghost-btn" type="button" hidden data-i18n="addModel.cancelUpload">Cancel upload</button>
               </div>
-              <div id="modelUploadStatus" class="runtime-compact full">No upload in progress.</div>
+              <div id="modelUploadStatus" class="runtime-compact full" data-i18n="addModel.uploadIdle">No upload in progress.</div>
               <div class="settings-action-row full">
-                <button id="purgeModelsBtn" class="ghost-btn danger-btn" type="button">Delete all models</button>
+                <button id="purgeModelsBtn" class="ghost-btn danger-btn" type="button" data-i18n="addModel.deleteAll">Delete all models</button>
               </div>
             </div>
           </details>
           <section class="settings-section settings-editor-column">
             <div class="selected-model-header">
               <div class="selected-model-header-copy">
-                <h3 class="settings-section-title">Selected model</h3>
-                <div id="modelName">Checking...</div>
+                <h3 class="settings-section-title" data-i18n="editor.selectedModel">Selected model</h3>
+                <div id="modelName" data-i18n="editor.checking">Checking...</div>
                 <div id="modelIdentityMeta" class="selected-model-meta" aria-live="polite"></div>
-                <div id="modelSettingsStatus" class="runtime-compact">Select a model to edit its chat and vision settings.</div>
+                <div id="modelSettingsStatus" class="runtime-compact" data-i18n="editor.selectHint">Select a model to edit its chat and vision settings.</div>
               </div>
               <div class="selected-model-header-actions">
-                <button id="discardModelSettingsBtn" class="ghost-btn" type="button" hidden>Discard changes</button>
-                <button id="saveModelSettingsBtn" class="ghost-btn settings-save-btn" type="button">Save model settings</button>
+                <button id="discardModelSettingsBtn" class="ghost-btn" type="button" hidden data-i18n="editor.discard">Discard changes</button>
+                <button id="saveModelSettingsBtn" class="ghost-btn settings-save-btn" type="button" data-i18n="editor.save">Save model settings</button>
               </div>
             </div>
             <div id="modelCapabilitiesChips" class="settings-chip-row" aria-live="polite"></div>
-            <div id="modelCapabilitiesText" class="settings-section-note">Capabilities unknown.</div>
+            <div id="modelCapabilitiesText" class="settings-section-note" data-i18n="editor.capabilitiesUnknown">Capabilities unknown.</div>
             <section class="settings-subpanel full settings-chat-panel">
               <div class="settings-subpanel-header">
-                <h4 class="settings-subpanel-title">Chat profile</h4>
+                <h4 class="settings-subpanel-title" data-i18n="editor.chatProfile">Chat profile</h4>
               </div>
               <label class="full">System Prompt (optional)
                 <textarea id="systemPrompt" placeholder="Set assistant behavior for this model"></textarea>
