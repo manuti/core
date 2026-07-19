@@ -12,10 +12,12 @@ try:
     from core.deps import get_runtime
     from core.runtime_state import RuntimeConfig
     from core.settings import apply_settings_document_yaml, export_settings_document_yaml
+    from core.ui_prefs import read_ui_language, write_ui_language
 except ModuleNotFoundError:
     from deps import get_runtime  # type: ignore[no-redef]
     from runtime_state import RuntimeConfig  # type: ignore[no-redef]
     from settings import apply_settings_document_yaml, export_settings_document_yaml  # type: ignore[no-redef]
+    from ui_prefs import read_ui_language, write_ui_language  # type: ignore[no-redef]
 
 router = APIRouter()
 
@@ -25,6 +27,23 @@ _restart_managed_llama_process = None
 def register_settings_helpers(*, restart_managed_llama_process):
     global _restart_managed_llama_process
     _restart_managed_llama_process = restart_managed_llama_process
+
+
+@router.get("/internal/ui-preferences")
+async def get_ui_preferences(runtime_cfg: RuntimeConfig = Depends(get_runtime)) -> JSONResponse:
+    return JSONResponse(status_code=200, content={"language": read_ui_language(runtime_cfg)})
+
+
+@router.post("/internal/ui-preferences")
+async def set_ui_preferences(
+    request: Request,
+    runtime_cfg: RuntimeConfig = Depends(get_runtime),
+) -> JSONResponse:
+    payload = await request.json()
+    language = str(payload.get("language") or "")
+    if not write_ui_language(runtime_cfg, language):
+        return JSONResponse(status_code=400, content={"updated": False, "reason": "invalid_language"})
+    return JSONResponse(status_code=200, content={"updated": True, "language": language})
 
 
 @router.get("/internal/settings-document")

@@ -59,11 +59,45 @@ async function _fetchLocale(lang) {
   return res.json();
 }
 
+const _PREFS_URL = "/internal/ui-preferences";
+
+// Server-stored language preference (syncs across devices). Best-effort.
+async function _fetchServerLang() {
+  try {
+    const res = await fetch(_PREFS_URL, { cache: "no-store" });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const lang = String(data?.language || "").slice(0, 2).toLowerCase();
+    return _isSupported(lang) ? lang : null;
+  } catch {
+    return null;
+  }
+}
+
+function _persistServerLang(lang) {
+  // Fire-and-forget; the CSRF fetch wrapper adds the header for same-origin.
+  try {
+    fetch(_PREFS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ language: lang }),
+    }).catch(() => {});
+  } catch { /* offline / blocked — localStorage still holds the choice */ }
+}
+
 // Load the English fallback plus the requested/detected locale. Any failure
 // degrades gracefully to whatever loaded (English, or raw keys).
 export async function initI18n() {
   _fallback = await _fetchLocale(DEFAULT_LANG).catch(() => ({}));
-  _lang = resolveInitialLang();
+  // Resolution order: localStorage (this device) → server preference (synced
+  // across devices) → navigator language → English.
+  let chosen = null;
+  try {
+    const saved = localStorage.getItem("potato_lang");
+    if (_isSupported(saved)) chosen = saved;
+  } catch { /* private mode */ }
+  if (!chosen) chosen = await _fetchServerLang();
+  _lang = _isSupported(chosen) ? chosen : resolveInitialLang();
   _dict = _lang === DEFAULT_LANG ? _fallback : await _fetchLocale(_lang).catch(() => _fallback);
   if (typeof document !== "undefined") {
     document.documentElement.setAttribute("lang", _lang);
@@ -160,6 +194,7 @@ export async function setLang(lang) {
   if (!_isSupported(lang) || lang === _lang) return;
   _lang = lang;
   try { localStorage.setItem("potato_lang", lang); } catch { /* quota */ }
+  _persistServerLang(lang);
   _dict = lang === DEFAULT_LANG ? _fallback : await _fetchLocale(lang).catch(() => _fallback);
   if (typeof document !== "undefined") {
     document.documentElement.setAttribute("lang", lang);
