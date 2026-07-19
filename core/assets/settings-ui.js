@@ -3,7 +3,7 @@
 import { appState, defaultSettings, settingsKey, DEFAULT_MODEL_VISION_SETTINGS } from "./state.js";
 import { formatBytes, postJson } from "./utils.js";
 import { formatModelStatusLabel } from "./status.js";
-import { t } from "./i18n.js";
+import { t, tReason } from "./i18n.js";
 import { flushPendingNoticeDismissal } from "./platform-notify.js";
 
     let _platform = {};
@@ -316,7 +316,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       if (normalized === "already_exists") {
         return t("su.urlErrDup");
       }
-      return t("su.urlErrGeneric", { reason: reason || fallbackStatus });
+      return t("su.urlErrGeneric", { reason: tReason(reason) || fallbackStatus });
     }
 
     function isEditingModelSettingsField() {
@@ -807,7 +807,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
         const res = await fetch("/internal/settings-document", { cache: "no-store" });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
-          if (statusEl) statusEl.textContent = t("yaml.loadErr", { reason: body?.reason || res.status });
+          if (statusEl) statusEl.textContent = t("yaml.loadErr", { reason: tReason(body?.reason) || res.status });
           return;
         }
         document.getElementById("settingsYamlInput").value = String(body?.document || "");
@@ -829,7 +829,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
         const documentText = String(document.getElementById("settingsYamlInput").value || "");
         const { res, body } = await postJson("/internal/settings-document", { document: documentText });
         if (!res.ok) {
-          if (statusEl) statusEl.textContent = t("yaml.applyErr", { reason: body?.reason || res.status });
+          if (statusEl) statusEl.textContent = t("yaml.applyErr", { reason: tReason(body?.reason) || res.status });
           return;
         }
         clearModelSettingsDraftState();
@@ -865,7 +865,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
           settings,
         });
         if (!res.ok) {
-          if (statusEl) statusEl.textContent = t("su.saveErr", { reason: body?.reason || res.status });
+          if (statusEl) statusEl.textContent = t("su.saveErr", { reason: tReason(body?.reason) || res.status });
           return;
         }
         clearModelSettingsDraftState();
@@ -893,7 +893,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       try {
         const { res, body } = await postJson("/internal/models/download-projector", { model_id: selectedModel.id });
         if (!res.ok) {
-          if (statusEl) statusEl.textContent = t("su.encoderErr", { reason: body?.reason || res.status });
+          if (statusEl) statusEl.textContent = t("su.encoderErr", { reason: tReason(body?.reason) || res.status });
           return;
         }
         if (button) {

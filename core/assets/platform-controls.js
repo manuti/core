@@ -23,7 +23,7 @@
 
 import { appState, RUNTIME_RECONNECT_INTERVAL_MS, RUNTIME_RECONNECT_TIMEOUT_MS, RUNTIME_RECONNECT_MAX_ATTEMPTS } from "./state.js";
 import { formatBytes } from "./utils.js";
-import { t } from "./i18n.js";
+import { t, tReason } from "./i18n.js";
 import { isLocalModelConnected, findResumableFailedModel, renderDownloadPrompt } from "./status.js";
 import { setModelUploadStatus, setLlamaRuntimeSwitchStatus, setLlamaRuntimeSwitchButtonState, setLlamaMemoryLoadingStatus, setLlamaMemoryLoadingButtonState, setLargeModelOverrideStatus, setLargeModelOverrideButtonState, setPowerCalibrationStatus, setPowerCalibrationButtonsState } from "./runtime-ui.js";
 import { setUpdateCheckInFlight, setUpdateStartInFlight, isUpdateExecutionActive, openChangelogModal } from "./update-ui.js";
@@ -67,7 +67,7 @@ export async function switchLlamaRuntimeBundle() {
   try {
     const result = await platformApi.switchRuntime(family);
     if (!result.ok) {
-      showPlatformNotice(t("pc.couldNotSwitch", { error: result.error }), { level: "error" });
+      showPlatformNotice(t("pc.couldNotSwitch", { error: tReason(result.error) }), { level: "error" });
       return;
     }
     showPlatformNotice(t("pc.switchedTo", { family: result.family }), { level: "success" });
@@ -95,8 +95,8 @@ export async function applyLlamaMemoryLoadingMode() {
   try {
     const result = await platformApi.setMemoryLoadingMode(mode);
     if (!result.ok) {
-      showPlatformNotice(t("pc.couldNotUpdateMemory", { error: result.error }), { level: "error" });
-      setLlamaMemoryLoadingStatus(t("pc.lastMemoryErr", { error: result.error }));
+      showPlatformNotice(t("pc.couldNotUpdateMemory", { error: tReason(result.error) }), { level: "error" });
+      setLlamaMemoryLoadingStatus(t("pc.lastMemoryErr", { error: tReason(result.error) }));
       return;
     }
     showPlatformNotice(
@@ -124,8 +124,8 @@ export async function applyLargeModelCompatibilityOverride(enabled) {
   try {
     const result = await platformApi.setLargeModelOverride(enabled);
     if (!result.ok) {
-      showPlatformNotice(t("pc.couldNotUpdateCompat", { error: result.error }), { level: "error" });
-      setLargeModelOverrideStatus(t("pc.lastCompatErr", { error: result.error }));
+      showPlatformNotice(t("pc.couldNotUpdateCompat", { error: tReason(result.error) }), { level: "error" });
+      setLargeModelOverrideStatus(t("pc.lastCompatErr", { error: tReason(result.error) }));
       return;
     }
     showPlatformNotice(
@@ -177,8 +177,8 @@ export async function capturePowerCalibrationSample() {
   try {
     const result = await platformApi.captureCalibrationSample(wallWatts);
     if (!result.ok) {
-      showPlatformNotice(t("pc.errCapture", { error: result.error }), { level: "error" });
-      setPowerCalibrationStatus(t("pc.calibErr", { error: result.error }));
+      showPlatformNotice(t("pc.errCapture", { error: tReason(result.error) }), { level: "error" });
+      setPowerCalibrationStatus(t("pc.calibErr", { error: tReason(result.error) }));
       return;
     }
     showPlatformNotice(
@@ -200,8 +200,8 @@ export async function fitPowerCalibrationModel() {
   try {
     const result = await platformApi.fitCalibrationModel();
     if (!result.ok) {
-      showPlatformNotice(t("pc.errCompute", { error: result.error }), { level: "error" });
-      setPowerCalibrationStatus(t("pc.calibErr", { error: result.error }));
+      showPlatformNotice(t("pc.errCompute", { error: tReason(result.error) }), { level: "error" });
+      setPowerCalibrationStatus(t("pc.calibErr", { error: tReason(result.error) }));
       return;
     }
     const cal = result.calibration || {};
@@ -229,8 +229,8 @@ export async function resetPowerCalibrationModel() {
   try {
     const result = await platformApi.resetCalibration();
     if (!result.ok) {
-      showPlatformNotice(t("pc.errResetCalib", { error: result.error }), { level: "error" });
-      setPowerCalibrationStatus(t("pc.calibErr", { error: result.error }));
+      showPlatformNotice(t("pc.errResetCalib", { error: tReason(result.error) }), { level: "error" });
+      setPowerCalibrationStatus(t("pc.calibErr", { error: tReason(result.error) }));
       return;
     }
     showPlatformNotice(t("pc.calibReset"), { level: "success" });
@@ -246,7 +246,7 @@ export async function resetPowerCalibrationModel() {
 export async function updateCountdownPreference(enabled) {
   const result = await platformApi.setDownloadCountdown(enabled);
   if (!result.ok) {
-    showPlatformNotice(t("pc.errAutoDownload", { error: result.error }), { level: "error" });
+    showPlatformNotice(t("pc.errAutoDownload", { error: tReason(result.error) }), { level: "error" });
   }
   await _shell.pollStatus();
 }
@@ -275,7 +275,7 @@ export async function registerModelFromUrl() {
     if (!result.ok) {
       setModelUrlStatus(result.reason
         ? formatModelUrlStatus(result.reason, result.status)
-        : t("pc.couldNotAddUrl", { error: result.error }));
+        : t("pc.couldNotAddUrl", { error: tReason(result.error) }));
       return;
     }
     setModelUrlStatus(
@@ -297,7 +297,7 @@ export async function startModelDownloadForModel(modelId) {
   try {
     const result = await modelApi.downloadModel(modelId);
     if (!result.ok) {
-      showPlatformNotice(t("pc.errStartDownload", { error: result.error }), { level: "error" });
+      showPlatformNotice(t("pc.errStartDownload", { error: tReason(result.error) }), { level: "error" });
       return;
     }
     if (!result.started && result.reason === "insufficient_storage") {
@@ -321,7 +321,7 @@ export async function cancelActiveModelDownload(modelId = null) {
   try {
     const result = await modelApi.cancelDownload();
     if (!result.ok) {
-      showPlatformNotice(t("pc.errCancelDownload", { error: result.error }), { level: "error" });
+      showPlatformNotice(t("pc.errCancelDownload", { error: tReason(result.error) }), { level: "error" });
     }
   } finally {
     appState.modelActionInFlight = false;
@@ -336,7 +336,7 @@ export async function activateSelectedModel(modelId) {
   try {
     const result = await modelApi.activateModel(modelId);
     if (!result.ok) {
-      showPlatformNotice(t("pc.errActivate", { error: result.error }), { level: "error" });
+      showPlatformNotice(t("pc.errActivate", { error: tReason(result.error) }), { level: "error" });
       return;
     }
     setComposerActivity(t("pc.switchingActive"));
@@ -361,7 +361,7 @@ export async function deleteSelectedModel(modelId) {
   try {
     const result = await modelApi.deleteModel(modelId);
     if (!result.ok) {
-      showPlatformNotice(t("pc.errDelete", { error: result.error }), { level: "error" });
+      showPlatformNotice(t("pc.errDelete", { error: tReason(result.error) }), { level: "error" });
       return;
     }
   } finally {
@@ -380,7 +380,7 @@ export async function purgeAllModels() {
   try {
     const result = await modelApi.purgeModels();
     if (!result.ok) {
-      showPlatformNotice(t("pc.errPurge", { error: result.error }), { level: "error" });
+      showPlatformNotice(t("pc.errPurge", { error: tReason(result.error) }), { level: "error" });
       return;
     }
     setComposerActivity(t("pc.allCleared"));
@@ -446,13 +446,13 @@ export async function uploadLocalModel() {
       if (body?.reason === "upload_too_large" && body?.max_upload_bytes) {
         setModelUploadStatus(t("pc.uploadTooLarge", { limit: formatBytes(body.max_upload_bytes) }));
       } else {
-        setModelUploadStatus(t("pc.uploadFailedReason", { reason: body?.reason || xhr.status }));
+        setModelUploadStatus(t("pc.uploadFailedReason", { reason: tReason(body?.reason) || xhr.status }));
       }
     } else if (body?.uploaded) {
       if (input) input.value = "";
       setModelUploadStatus(t("pc.uploadCompleted"));
     } else {
-      setModelUploadStatus(t("pc.uploadIncomplete", { reason: body?.reason || t("ru.unknown") }));
+      setModelUploadStatus(t("pc.uploadIncomplete", { reason: tReason(body?.reason) || t("ru.unknown") }));
     }
     await _shell.pollStatus();
   };
@@ -569,7 +569,7 @@ export async function resetRuntimeHeavy() {
   try {
     const result = await platformApi.resetRuntime();
     if (!result.ok) {
-      showPlatformNotice(t("pc.errStartReset", { error: result.error }), { level: "error" });
+      showPlatformNotice(t("pc.errStartReset", { error: tReason(result.error) }), { level: "error" });
       return;
     }
     if (result.started) {
@@ -579,7 +579,7 @@ export async function resetRuntimeHeavy() {
         { level: "info" },
       );
     } else {
-      showPlatformNotice(t("pc.resetDidNotStart", { reason: result.reason || t("ru.unknown") }), { level: "warn" });
+      showPlatformNotice(t("pc.resetDidNotStart", { reason: tReason(result.reason) || t("ru.unknown") }), { level: "warn" });
     }
   } finally {
     appState.runtimeResetInFlight = false;
@@ -605,7 +605,7 @@ export async function checkForUpdate() {
   try {
     const result = await platformApi.checkForUpdate();
     if (!result.ok) {
-      showPlatformNotice(t("pc.errCheckUpdates", { error: result.error }), { level: "error" });
+      showPlatformNotice(t("pc.errCheckUpdates", { error: tReason(result.error) }), { level: "error" });
       return;
     }
     await _shell.pollStatus();

@@ -86,6 +86,16 @@ export function t(key, vars) {
   return s;
 }
 
+// Translate a backend reason/error code (e.g. "insufficient_storage") via the
+// errcode.* namespace. Unknown values pass through unchanged (they may already
+// be human text); empty → "". Lets the client localize codes the API emits.
+export function tReason(code) {
+  if (!code) return "";
+  const key = `errcode.${code}`;
+  const translated = t(key);
+  return translated !== key ? translated : String(code);
+}
+
 // Hydrate declaratively-marked static markup within `root`.
 export function applyTranslations(root = document) {
   if (!root || typeof root.querySelectorAll !== "function") return;

@@ -1,7 +1,7 @@
 "use strict";
 
 import { appState, CPU_CLOCK_MAX_HZ_PI5, GPU_CLOCK_MAX_HZ_PI5 } from "./state.js";
-import { t } from "./i18n.js";
+import { t, tReason } from "./i18n.js";
 
     function _cpuMaxHz(systemPayload) {
       return Number(systemPayload?.device_clock_limits?.cpu_max_hz) || CPU_CLOCK_MAX_HZ_PI5;
@@ -512,7 +512,7 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
         const target = String(switchState?.target_family || t("ru.selectedRuntime"));
         setLlamaRuntimeSwitchStatus(t("ru.switchingRuntime", { target }));
       } else if (switchState?.error) {
-        setLlamaRuntimeSwitchStatus(t("ru.switchError", { error: switchState.error }));
+        setLlamaRuntimeSwitchStatus(t("ru.switchError", { error: tReason(switchState.error) }));
       } else if (runtimePayload?.current?.family || runtimePayload?.current?.source_bundle_name) {
         setLlamaRuntimeSwitchStatus(t("ru.activeRuntime", { name: runtimePayload.current.family || runtimePayload.current.source_bundle_name }));
       } else {
@@ -536,7 +536,7 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
       }
       if (cancelBtn) cancelBtn.hidden = true;
       if (upload?.error) {
-        setModelUploadStatus(t("ru.uploadState", { error: upload.error }));
+        setModelUploadStatus(t("ru.uploadState", { error: tReason(upload.error) }));
       } else {
         setModelUploadStatus(t("addModel.uploadIdle"));
       }
