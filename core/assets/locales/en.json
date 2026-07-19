@@ -152,5 +152,13 @@
   "editMsg.note": "Update the message and resend from this point in the conversation.",
   "editMsg.closeAria": "Close edit message dialog",
   "editMsg.inputPh": "Update your message...",
-  "editMsg.hint": "Everything after this turn will be replaced by the new run."
+  "editMsg.hint": "Everything after this turn will be replaced by the new run.",
+
+  "mstatus.ready": "Ready",
+  "mstatus.downloading": "Downloading",
+  "mstatus.failed": "Failed",
+  "mstatus.not_downloaded": "Not Downloaded",
+  "mstatus.downloaded": "Downloaded",
+  "mstatus.registered": "Registered",
+  "mstatus.unknown": "Unknown"
 }

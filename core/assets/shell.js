@@ -1,7 +1,7 @@
 "use strict";
 
 import "./csrf.js"; // must be first — installs the same-origin CSRF fetch wrapper
-import { initI18n, applyTranslations } from "./i18n.js";
+import { initI18n, applyTranslations, setLang, getLang, SUPPORTED, LANG_NAMES, onLangChange } from "./i18n.js";
 import { appState, defaultSettings, STATUS_POLL_TIMEOUT_MS } from "./state.js";
 import { formatCountdownSeconds } from "./utils.js";
 import { isLocalModelConnected, updateLlamaIndicator, renderDownloadPrompt, renderStatusActions, renderCompatibilityWarnings, formatSidebarStatusDetail, findResumableFailedModel } from "./status.js";
@@ -181,6 +181,22 @@ import { registerPlatformShell } from "./platform-controls.js";
       renderSettingsWorkspace(statusPayload);
       renderUploadState(statusPayload);
       setSendEnabled();
+    }
+
+    function initLanguageSelector() {
+      const select = document.getElementById("languageSelect");
+      if (!select) return;
+      select.replaceChildren();
+      for (const code of SUPPORTED) {
+        const option = document.createElement("option");
+        option.value = code;
+        option.textContent = LANG_NAMES[code] || code;
+        if (code === getLang()) option.selected = true;
+        select.appendChild(option);
+      }
+      select.addEventListener("change", (event) => {
+        setLang(event.target.value);
+      });
     }
 
     async function pollStatus(options = {}) {
@@ -495,6 +511,13 @@ import { registerPlatformShell } from "./platform-controls.js";
     // so static markup renders in the chosen language from the first paint.
     await initI18n().catch((err) => { console.error("i18n init failed:", err); });
     applyTranslations(document);
+    initLanguageSelector();
+    // On language change: re-hydrate static markup and re-run the render
+    // pipeline so JS-driven strings pick up the new locale immediately.
+    onLangChange(() => {
+      applyTranslations(document);
+      if (appState.latestStatus) setStatus(appState.latestStatus);
+    });
 
     // Discover apps, then load the first available UI app, then start polling
     const appContainer = document.getElementById("appContainer");

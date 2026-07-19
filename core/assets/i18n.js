@@ -14,6 +14,15 @@
 export const SUPPORTED = ["en", "es", "fr", "pt"];
 export const DEFAULT_LANG = "en";
 
+// Native language names for the picker. Adding a language = add its code to
+// SUPPORTED, its name here, and ship locales/<code>.json.
+export const LANG_NAMES = {
+  en: "English",
+  es: "Español",
+  fr: "Français",
+  pt: "Português",
+};
+
 let _lang = DEFAULT_LANG;
 let _dict = {};      // active locale dictionary
 let _fallback = {};  // en dictionary (always loaded)

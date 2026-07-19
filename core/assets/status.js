@@ -2,6 +2,7 @@
 
 import { appState } from "./state.js";
 import { formatBytes, formatCountdownSeconds } from "./utils.js";
+import { t } from "./i18n.js";
 
     export function isLocalModelConnected(statusPayload) {
       const backendMode = String(
@@ -225,7 +226,12 @@ import { formatBytes, formatCountdownSeconds } from "./utils.js";
 
     export function formatModelStatusLabel(rawStatus) {
       const normalized = String(rawStatus || "unknown").trim().toLowerCase();
-      if (!normalized) return "unknown";
+      if (!normalized) return t("mstatus.unknown");
+      // Known statuses are translated; anything unexpected falls back to a
+      // title-cased version of the raw value.
+      const key = `mstatus.${normalized}`;
+      const translated = t(key);
+      if (translated !== key) return translated;
       return normalized
         .replaceAll("_", " ")
         .split(" ")

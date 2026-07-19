@@ -1343,6 +1343,42 @@
       flex-shrink: 0;
     }
 
+    .settings-lang-picker {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    #languageSelect {
+      appearance: auto;
+      border: 1px solid color-mix(in srgb, var(--border) 80%, var(--text) 8%);
+      border-radius: 10px;
+      background: var(--panel);
+      color: var(--text);
+      font: inherit;
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 6px 8px;
+      cursor: pointer;
+    }
+
+    :root[data-theme="dark"] #languageSelect,
+    :root[data-theme="dark"] #languageSelect option {
+      background: #16304f;
+      color: #f2f6ff;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) #languageSelect,
+      :root:not([data-theme="light"]) #languageSelect option {
+        background: #16304f;
+        color: #f2f6ff;
+      }
+    }
+
     .settings-modal-title {
       margin: 0;
       font-size: 28px;

@@ -152,5 +152,13 @@
   "editMsg.note": "Actualiza el mensaje y reenvía desde este punto de la conversación.",
   "editMsg.closeAria": "Cerrar el diálogo de edición de mensaje",
   "editMsg.inputPh": "Actualiza tu mensaje...",
-  "editMsg.hint": "Todo lo posterior a este turno se reemplazará por la nueva ejecución."
+  "editMsg.hint": "Todo lo posterior a este turno se reemplazará por la nueva ejecución.",
+
+  "mstatus.ready": "Listo",
+  "mstatus.downloading": "Descargando",
+  "mstatus.failed": "Fallido",
+  "mstatus.not_downloaded": "No descargado",
+  "mstatus.downloaded": "Descargado",
+  "mstatus.registered": "Registrado",
+  "mstatus.unknown": "Desconocido"
 }
