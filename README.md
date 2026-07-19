@@ -121,7 +121,11 @@ potatoctl doctor          # health check — service, API, model, version
 potatoctl logs api        # stream service logs (also: llm, model, all)
 potatoctl status          # full JSON status from the API
 potatoctl restart         # restart the potato service
+potatoctl bench           # timed generation + snapshot → benchmark row
 ```
+
+Benchmark methodology, the standard results schema, and published reports live
+in [`docs/benchmarks/`](docs/benchmarks/README.md).
 
 ### API endpoints
 

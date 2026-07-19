@@ -14,6 +14,7 @@ Commands:
   logs [api|llm|all]  Stream logs (default: api)
   status              Show raw JSON status from the API
   restart             Restart the potato service
+  bench [prompt] [n]  Timed generation + snapshot → Markdown benchmark row
 EOF
   exit 1
 }
@@ -100,6 +101,69 @@ cmd_restart() {
   printf 'Done.\n'
 }
 
+# Reproducible micro-benchmark: snapshot /status (device, runtime, power,
+# temp, throttle) and run one timed generation to measure decode tok/s.
+# Prints a human summary plus a ready-to-paste Markdown table row.
+cmd_bench() {
+  local prompt="${1:-Explain quantum computing in three short sentences.}"
+  local max_tokens="${2:-128}"
+  python3 - "$POTATO_URL" "$prompt" "$max_tokens" <<'PYEOF'
+import json, sys, time, urllib.request
+
+base, prompt, max_tokens = sys.argv[1], sys.argv[2], int(sys.argv[3])
+
+def get_json(url, data=None, timeout=300):
+    headers = {"Content-Type": "application/json"} if data else {}
+    req = urllib.request.Request(url, data=data, headers=headers)
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.load(r)
+
+try:
+    st = get_json(base + "/status", timeout=5)
+except Exception as e:
+    sys.exit(f"API unreachable at {base}: {e}")
+
+sysd = st.get("system") or {}
+model = (st.get("model") or {}).get("filename") or "?"
+runtime = ((st.get("llama_runtime") or {}).get("current") or {}).get("family") or "?"
+pi = sysd.get("pi_model_name") or "?"
+power = ((sysd.get("power_estimate") or {}).get("adjusted_total_watts"))
+temp = sysd.get("temperature_c")
+throttle = bool(((sysd.get("throttling") or {}).get("any_current")))
+
+print(f"Model:    {model}")
+print(f"Runtime:  {runtime}")
+print(f"Device:   {pi}")
+print("Running timed generation…")
+
+req = {"model": "local", "stream": False, "temperature": 0.7, "top_p": 0.8,
+       "max_tokens": max_tokens,
+       "messages": [{"role": "user", "content": prompt}]}
+t0 = time.time()
+try:
+    body = get_json(base + "/v1/chat/completions", data=json.dumps(req).encode())
+except Exception as e:
+    sys.exit(f"generation failed: {e}")
+dt = time.time() - t0
+
+usage = body.get("usage") or {}
+ctok = int(usage.get("completion_tokens") or 0)
+tps = (ctok / dt) if dt > 0 else 0.0
+pw = f"{power:.2f}" if isinstance(power, (int, float)) else "--"
+tp = f"{temp:.1f}" if isinstance(temp, (int, float)) else "--"
+
+print()
+print(f"Generated {ctok} tokens in {dt:.1f}s → {tps:.2f} tok/s"
+      f" | power {pw} W | temp {tp} °C | throttling {'yes' if throttle else 'no'}")
+print()
+print("Paste into docs/benchmarks (fill quant + notes):")
+print("| Model | Quant | Runtime | Gen t/s | Power W | Temp °C | Throttle | Notes |")
+print("|-------|-------|---------|---------|---------|---------|----------|-------|")
+print(f"| {model} |  | {runtime} | {tps:.2f} | {pw} | {tp} | "
+      f"{'yes' if throttle else 'no'} |  |")
+PYEOF
+}
+
 [ $# -lt 1 ] && _usage
 
 case "$1" in
@@ -107,5 +171,6 @@ case "$1" in
   logs)     cmd_logs "${2:-api}" ;;
   status)   cmd_status ;;
   restart)  cmd_restart ;;
+  bench)    cmd_bench "${2:-}" "${3:-128}" ;;
   *)        _usage ;;
 esac
