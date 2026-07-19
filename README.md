@@ -57,7 +57,7 @@ Potato OS is an early release meant for testing and tinkering, not production us
 - Model management — download by URL, upload, delete, switch active model, with on-disk size shown per model
 - HuggingFace token support — download gated/private models with an `hf_*` token (stored in a 0600 file, never in logs or API responses)
 - Concurrent request queuing — a bounded inference queue lets a few requests wait their turn instead of failing immediately; only requests beyond the limit get a 429 (configurable via `POTATO_INFERENCE_MAX_QUEUE`, default 3)
-- Multilingual UI — English and Spanish out of the box, French/Portuguese scaffolded; switch from the Settings language picker. Community-extensible via a single JSON file per language (see `docs/i18n.md`)
+- Multilingual UI — English, Spanish, French and Portuguese out of the box; switch from the Settings language picker. Community-extensible via a single JSON file per language (see `docs/i18n.md`)
 - System monitoring — CPU, GPU, temperature, memory (available, not just free), storage, power draw, with a live thermal-throttling warning during inference
 - Dual inference runtime — ik_llama (Pi 5 default) and upstream llama.cpp (Pi 4 default, Pi 5 fallback)
 - OpenAI-compatible API — `GET /v1/models` and `POST /v1/chat/completions`
