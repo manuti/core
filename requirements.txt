@@ -3,4 +3,4 @@ uvicorn[standard]>=0.30.0,<1.0.0
 httpx>=0.27.0,<1.0.0
 psutil>=6.0.0,<7.0.0
 PyYAML>=6.0.2,<7.0.0
-potato-inferno @ git+https://github.com/potato-os/inferno.git@2785766
+potato-inferno @ git+https://github.com/manuti/inferno.git@840d51b6ee826c45b847b68d409be50a6aedab00
