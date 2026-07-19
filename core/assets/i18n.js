@@ -118,6 +118,37 @@ export function applyTranslations(root = document) {
 
 export function getLang() { return _lang; }
 
+// BCP-47 tag for Intl formatters. pt → pt-PT (European Portuguese, matching
+// the translation); others map 1:1.
+export function localeTag() {
+  return _lang === "pt" ? "pt-PT" : _lang;
+}
+
+// Locale-aware time of day for the active language.
+export function formatTime(date) {
+  try {
+    return new Intl.DateTimeFormat(localeTag(), { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(date);
+  } catch {
+    return date.toLocaleTimeString();
+  }
+}
+
+// Locale-aware decimal (localizes the decimal separator only — grouping is
+// disabled so byte/number layouts and value-matching stay stable).
+export function formatNum(value, minFrac = 0, maxFrac = minFrac) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value);
+  try {
+    return new Intl.NumberFormat(localeTag(), {
+      minimumFractionDigits: minFrac,
+      maximumFractionDigits: maxFrac,
+      useGrouping: false,
+    }).format(n);
+  } catch {
+    return n.toFixed(maxFrac);
+  }
+}
+
 // Subscribe to language changes; returns an unsubscribe fn. Modules that
 // render dynamic strings re-run their render on change.
 export function onLangChange(fn) {

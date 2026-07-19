@@ -1,7 +1,7 @@
 "use strict";
 
 import { appState, CPU_CLOCK_MAX_HZ_PI5, GPU_CLOCK_MAX_HZ_PI5 } from "./state.js";
-import { t, tReason } from "./i18n.js";
+import { t, tReason, formatTime, formatNum } from "./i18n.js";
 
     function _cpuMaxHz(systemPayload) {
       return Number(systemPayload?.device_clock_limits?.cpu_max_hz) || CPU_CLOCK_MAX_HZ_PI5;
@@ -218,7 +218,7 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
       const tempValue = typeof tempRaw === "number" ? tempRaw : Number.NaN;
       if (tempDetail) {
         tempDetail.textContent = Number.isFinite(tempValue)
-          ? `${tempValue.toFixed(1)}°C`
+          ? `${formatNum(tempValue, 1)}°C`
           : "--";
       }
       applyRuntimeMetricSeverity(tempDetail, tempValue);
@@ -279,12 +279,12 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
       const rawLabel = isCpuLoadMethod ? t("ru.powerCpuRawLabel") : t("ru.powerPmicRawLabel");
       if (powerDetail) {
         powerDetail.textContent = Number.isFinite(adjustedPowerWatts) && powerEstimate?.available === true
-          ? `${powerLabel}: ${adjustedPowerWatts.toFixed(3)} W`
+          ? `${powerLabel}: ${formatNum(adjustedPowerWatts, 3)} W`
           : `${powerLabel}: --`;
       }
       if (powerRawDetail) {
         powerRawDetail.textContent = Number.isFinite(rawPowerWatts) && powerEstimate?.available === true
-          ? `${rawLabel}: ${rawPowerWatts.toFixed(3)} W`
+          ? `${rawLabel}: ${formatNum(rawPowerWatts, 3)} W`
           : `${rawLabel}: --`;
       }
 
@@ -315,7 +315,7 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
       const updatedTs = Number(systemPayload?.updated_at_unix);
       if (updatedDetail) {
         updatedDetail.textContent = Number.isFinite(updatedTs) && updatedTs > 0
-          ? new Date(updatedTs * 1000).toLocaleTimeString()
+          ? formatTime(new Date(updatedTs * 1000))
           : "--";
       }
 
