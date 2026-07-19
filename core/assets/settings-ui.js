@@ -3,6 +3,7 @@
 import { appState, defaultSettings, settingsKey, DEFAULT_MODEL_VISION_SETTINGS } from "./state.js";
 import { formatBytes, postJson } from "./utils.js";
 import { formatModelStatusLabel } from "./status.js";
+import { t } from "./i18n.js";
 import { flushPendingNoticeDismissal } from "./platform-notify.js";
 
     let _platform = {};
@@ -74,7 +75,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       const seedField = document.getElementById("seed");
       if (!seedField) return;
       seedField.disabled = generationMode !== "deterministic";
-      seedField.title = seedField.disabled ? "Seed is only used in deterministic mode" : "";
+      seedField.title = seedField.disabled ? t("su.seedTitle") : "";
     }
 
     export function resolveSeedForRequest(settings) {
@@ -164,15 +165,15 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
 
     function formatTextOnlyImageNotice(statusPayload = appState.latestStatus) {
       const activeModel = resolveActiveRuntimeModel(statusPayload);
-      const modelName = String(activeModel?.filename || "The current model").trim();
-      return `${modelName} is text-only. Switch to a vision-capable model in Settings to send images.`;
+      const modelName = String(activeModel?.filename || t("su.currentModel")).trim();
+      return t("su.textOnlyNotice", { model: modelName });
     }
 
     export function formatImageRejectedNotice(statusPayload = appState.latestStatus) {
       if (activeRuntimeVisionCapability(statusPayload) === false) {
         return formatTextOnlyImageNotice(statusPayload);
       }
-      return "This model can't process images right now. Switch to a vision-capable model or configure its vision encoder in Settings.";
+      return t("su.imageBlocked");
     }
 
     function setComposerVisionNotice(message) {
@@ -187,7 +188,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       const notice = formatTextOnlyImageNotice(statusPayload);
       setComposerVisionNotice(notice);
       if (_chat.setComposerActivity) _chat.setComposerActivity(notice);
-      if (_chat.setComposerStatusChip) _chat.setComposerStatusChip("Current model is text-only.", { phase: "image" });
+      if (_chat.setComposerStatusChip) _chat.setComposerStatusChip(t("su.currentTextOnly"), { phase: "image" });
       if (_chat.hideComposerStatusChip) _chat.hideComposerStatusChip();
       if (_chat.setCancelEnabled) _chat.setCancelEnabled(false);
       if (_chat.focusPromptInput) _chat.focusPromptInput();
@@ -203,14 +204,14 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       setComposerVisionNotice(blockedMessage);
       attachBtn.disabled = appState.requestInFlight || explicitTextOnly;
       attachBtn.setAttribute("aria-disabled", attachBtn.disabled ? "true" : "false");
-      attachBtn.setAttribute("title", explicitTextOnly ? blockedMessage : "Attach image");
-      attachBtn.setAttribute("aria-label", explicitTextOnly ? blockedMessage : "Attach image");
+      attachBtn.setAttribute("title", explicitTextOnly ? blockedMessage : t("composer.attachImage"));
+      attachBtn.setAttribute("aria-label", explicitTextOnly ? blockedMessage : t("composer.attachImage"));
       if (clearBtn) {
         clearBtn.disabled = appState.requestInFlight;
       }
       if (explicitTextOnly && appState.pendingImage) {
         if (_chat.clearPendingImage) _chat.clearPendingImage();
-        if (_chat.setComposerActivity) _chat.setComposerActivity("Image removed.");
+        if (_chat.setComposerActivity) _chat.setComposerActivity(t("su.imageRemoved"));
       }
     }
 
@@ -276,7 +277,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       const statusEl = document.getElementById("modelSettingsStatus");
       const discardBtn = document.getElementById("discardModelSettingsBtn");
       if (statusEl) {
-        statusEl.textContent = "Unsaved changes.";
+        statusEl.textContent = t("su.unsavedChanges");
       }
       if (discardBtn) {
         discardBtn.hidden = false;
@@ -304,18 +305,18 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
     export function formatModelUrlStatus(reason, fallbackStatus) {
       const normalized = String(reason || "").trim().toLowerCase();
       if (normalized === "https_required") {
-        return "Use an HTTPS model URL that ends with .gguf or .litertlm.";
+        return t("su.urlErrHttps");
       }
       if (normalized === "gguf_required" || normalized === "unsupported_model_format") {
-        return "Model URL must point to a .gguf or .litertlm file.";
+        return t("su.urlErrExt");
       }
       if (normalized === "filename_missing") {
-        return "Model URL must include a model filename.";
+        return t("su.urlErrFilename");
       }
       if (normalized === "already_exists") {
-        return "That model URL is already registered.";
+        return t("su.urlErrDup");
       }
-      return `Could not add model URL (${reason || fallbackStatus}).`;
+      return t("su.urlErrGeneric", { reason: reason || fallbackStatus });
     }
 
     function isEditingModelSettingsField() {
@@ -390,7 +391,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
     export function blockModelSelectionChange() {
       const statusEl = document.getElementById("modelSettingsStatus");
       if (statusEl) {
-        statusEl.textContent = "Save or discard changes before switching models.";
+        statusEl.textContent = t("su.saveOrDiscard");
       }
     }
 
@@ -403,7 +404,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       renderSelectedModelSettings(appState.latestStatus);
       const statusEl = document.getElementById("modelSettingsStatus");
       if (statusEl) {
-        statusEl.textContent = "Changes discarded.";
+        statusEl.textContent = t("su.changesDiscarded");
       }
     }
 
@@ -526,11 +527,11 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       if (!selectedModel) {
         clearModelSettingsDraftState();
         appState.displayedSettingsModelId = "";
-        if (modelNameField) modelNameField.textContent = "No model selected";
+        if (modelNameField) modelNameField.textContent = t("su.noModelSelected");
         if (modelIdentityMeta) modelIdentityMeta.replaceChildren();
-        if (capabilitiesText) capabilitiesText.textContent = "Register or upload a model to configure it.";
+        if (capabilitiesText) capabilitiesText.textContent = t("su.registerToConfig");
         if (capabilitiesChips) capabilitiesChips.replaceChildren();
-        if (statusEl) statusEl.textContent = "No models registered yet.";
+        if (statusEl) statusEl.textContent = t("su.noModelsRegistered");
         if (saveBtn) saveBtn.disabled = true;
         if (discardBtn) {
           discardBtn.hidden = true;
@@ -560,9 +561,9 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       if (modelIdentityMeta) {
         modelIdentityMeta.replaceChildren();
         const metaBits = [];
-        if (selectedModel?.storage?.location) metaBits.push(`Stored on ${String(selectedModel.storage.location).toUpperCase()}`);
-        if (selectedModel?.source_type === "url") metaBits.push("Added from URL");
-        else if (selectedModel?.source_type === "upload") metaBits.push("Uploaded locally");
+        if (selectedModel?.storage?.location) metaBits.push(t("su.storedOn", { loc: String(selectedModel.storage.location).toUpperCase() }));
+        if (selectedModel?.source_type === "url") metaBits.push(t("su.addedFromUrl"));
+        else if (selectedModel?.source_type === "upload") metaBits.push(t("su.uploadedLocally"));
         if (selectedModel?.status === "failed" && selectedModel?.error) {
           metaBits.push(String(selectedModel.error));
         }
@@ -575,9 +576,9 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       }
       if (capabilitiesText) {
         const bits = [
-          selectedModel?.is_active ? "Active" : "Inactive",
-          selectedModel?.status ? `Status: ${formatModelStatusLabel(selectedModel.status)}` : "",
-          supportsVision ? "Vision capable" : "Text only",
+          selectedModel?.is_active ? t("chip.active") : t("chip.inactive"),
+          selectedModel?.status ? t("su.statusPrefix", { status: formatModelStatusLabel(selectedModel.status) }) : "",
+          supportsVision ? t("cap.visionCapable") : t("cap.textOnly"),
         ].filter(Boolean);
         capabilitiesText.textContent = bits.join(" · ");
       }
@@ -585,7 +586,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
         const chipSpecs = [
           {
             kind: "active",
-            text: selectedModel?.is_active ? "Active" : "Inactive",
+            text: selectedModel?.is_active ? t("chip.active") : t("chip.inactive"),
           },
           {
             kind: "status",
@@ -593,7 +594,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
           },
           {
             kind: "vision",
-            text: supportsVision ? "Vision" : "Text only",
+            text: supportsVision ? t("chip.vision") : t("chip.textOnly"),
           },
         ];
         capabilitiesChips.replaceChildren(...chipSpecs.map((chip) => {
@@ -606,7 +607,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       }
       if (statusEl) {
         if (preserveDraft) {
-          statusEl.textContent = "Unsaved changes.";
+          statusEl.textContent = t("su.unsavedChanges");
         } else {
           const currentText = String(statusEl.textContent || "");
           const keepRecentSuccess = (
@@ -615,8 +616,8 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
           );
           if (!keepRecentSuccess) {
             statusEl.textContent = selectedModel?.status === "failed"
-              ? `Model state: ${String(selectedModel?.error || "failed")}`
-              : "Update the selected model profile and save to persist it.";
+              ? t("su.modelStatePrefix", { error: String(selectedModel?.error || t("su.statusFailed")) })
+              : t("su.updateAndSave");
           }
         }
       }
@@ -645,11 +646,11 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       }
       if (projectorStatus) {
         if (!supportsVision) {
-          projectorStatus.textContent = "This model does not use a vision encoder.";
+          projectorStatus.textContent = t("su.noEncoderUsed");
         } else if (projector.present) {
-          projectorStatus.textContent = `Vision encoder ready: ${projector.filename || projector.defaultFilename || "available"}`;
+          projectorStatus.textContent = t("su.encoderReady", { file: projector.filename || projector.defaultFilename || t("su.encoderReadyGeneric") });
         } else {
-          projectorStatus.textContent = `No encoder installed. Default: ${projector.defaultFilename || "unknown"}`;
+          projectorStatus.textContent = t("su.noEncoderInstalled", { file: projector.defaultFilename || t("su.unknownFile") });
         }
       }
       if (projectorBtn) {
@@ -659,7 +660,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
         projectorBtn.dataset.projectorFilename = supportsVision
           ? String(projector.filename || vision.projector_filename || "")
           : "";
-        projectorBtn.textContent = projector.present ? "Re-download vision encoder" : "Download vision encoder";
+        projectorBtn.textContent = projector.present ? t("vision.redownloadEncoder") : t("vision.downloadEncoder");
       }
       if (saveBtn) {
         saveBtn.disabled = appState.modelSettingsSaveInFlight;
@@ -680,7 +681,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       if (models.length === 0) {
         const empty = document.createElement("div");
         empty.className = "runtime-compact";
-        empty.textContent = "No models registered yet. Add one below.";
+        empty.textContent = t("su.noModelsAddBelow");
         container.appendChild(empty);
         return;
       }
@@ -692,7 +693,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       // the whole Settings panel fits without scrolling.
       const label = document.createElement("span");
       label.className = "settings-model-bar-label";
-      label.textContent = "Model";
+      label.textContent = t("su.modelBarLabel");
 
       const selectWrap = document.createElement("span");
       selectWrap.className = "settings-model-select-wrap";
@@ -704,7 +705,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
         const option = document.createElement("option");
         option.value = String(model?.id || "");
         const statusLabel = model?.status === "failed" && model?.error === "insufficient_storage"
-          ? "Insufficient storage"
+          ? t("su.insufficientStorage")
           : formatModelStatusLabel(model?.status);
         const activeMark = model?.is_active === true ? " · Active" : "";
         option.textContent = `${String(model?.filename || "unknown.gguf")}  ·  ${statusLabel}${activeMark}`;
@@ -716,14 +717,14 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       const chips = document.createElement("span");
       chips.className = "settings-model-bar-chips";
       const chipBits = [];
-      if (selectedModel?.is_active === true) chipBits.push(["Active", "model-chip-active"]);
+      if (selectedModel?.is_active === true) chipBits.push([t("chip.active"), "model-chip-active"]);
       chipBits.push([
         selectedModel?.status === "failed" && selectedModel?.error === "insufficient_storage"
-          ? "Insufficient storage"
+          ? t("su.insufficientStorage")
           : formatModelStatusLabel(selectedModel?.status),
         "model-chip-status",
       ]);
-      if (selectedModel?.capabilities?.vision) chipBits.push(["Vision", ""]);
+      if (selectedModel?.capabilities?.vision) chipBits.push([t("chip.vision"), ""]);
       if (String(selectedModel?.source_type || "") === "url") chipBits.push(["URL", ""]);
       const selSize = Number(selectedModel?.storage?.size_bytes || 0);
       if (selSize > 0) chipBits.push([formatBytes(selSize), "model-size-chip"]);
@@ -743,14 +744,14 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
         cancelBtn.type = "button";
         cancelBtn.className = "ghost-btn";
         cancelBtn.dataset.action = "cancel-download";
-        cancelBtn.textContent = "Stop download";
+        cancelBtn.textContent = t("bar.stopDownload");
         actions.appendChild(cancelBtn);
       } else if (selectedModel?.status !== "ready" && selectedModel?.source_type === "url") {
         const downloadBtn = document.createElement("button");
         downloadBtn.type = "button";
         downloadBtn.className = "ghost-btn";
         downloadBtn.dataset.action = "download";
-        downloadBtn.textContent = selectedModel?.status === "failed" ? "Resume download" : "Download";
+        downloadBtn.textContent = selectedModel?.status === "failed" ? t("bar.resumeDownload") : t("bar.download");
         actions.appendChild(downloadBtn);
       }
       if (selectedModel?.is_active !== true && selectedModel?.status === "ready") {
@@ -758,7 +759,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
         activeBtn.type = "button";
         activeBtn.className = "ghost-btn";
         activeBtn.dataset.action = "activate";
-        activeBtn.textContent = "Set active";
+        activeBtn.textContent = t("bar.setActive");
         actions.appendChild(activeBtn);
       }
       if (selectedId.length > 0) {
@@ -766,7 +767,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
         deleteBtn.type = "button";
         deleteBtn.className = "ghost-btn danger-btn";
         deleteBtn.dataset.action = "delete";
-        deleteBtn.textContent = selectedModel?.status === "downloading" ? "Cancel + delete" : "Delete";
+        deleteBtn.textContent = selectedModel?.status === "downloading" ? t("bar.cancelDelete") : t("bar.delete");
         actions.appendChild(deleteBtn);
       }
 
@@ -779,12 +780,12 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       if (selectedModel?.status === "downloading") {
         const progress = document.createElement("div");
         progress.className = "runtime-compact settings-model-bar-progress";
-        progress.textContent = `Downloading ${Number(selectedModel?.percent || 0)}% (${formatBytes(selectedModel?.bytes_downloaded)} / ${formatBytes(selectedModel?.bytes_total)})`;
+        progress.textContent = t("su.downloadingProgress", { pct: Number(selectedModel?.percent || 0), done: formatBytes(selectedModel?.bytes_downloaded), total: formatBytes(selectedModel?.bytes_total) });
         container.appendChild(progress);
       } else if (selectedModel?.status === "failed" && Number(selectedModel?.bytes_total || 0) > 0) {
         const progress = document.createElement("div");
         progress.className = "runtime-compact settings-model-bar-progress";
-        progress.textContent = `Failed at ${formatBytes(selectedModel?.bytes_downloaded)} / ${formatBytes(selectedModel?.bytes_total)}`;
+        progress.textContent = t("su.failedAt", { done: formatBytes(selectedModel?.bytes_downloaded), total: formatBytes(selectedModel?.bytes_total) });
         container.appendChild(progress);
       }
     }
@@ -801,19 +802,19 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       if (appState.settingsYamlRequestInFlight) return;
       appState.settingsYamlRequestInFlight = true;
       const statusEl = document.getElementById("settingsYamlStatus");
-      if (statusEl) statusEl.textContent = "Loading YAML...";
+      if (statusEl) statusEl.textContent = t("yaml.loading");
       try {
         const res = await fetch("/internal/settings-document", { cache: "no-store" });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
-          if (statusEl) statusEl.textContent = `Could not load YAML (${body?.reason || res.status}).`;
+          if (statusEl) statusEl.textContent = t("yaml.loadErr", { reason: body?.reason || res.status });
           return;
         }
         document.getElementById("settingsYamlInput").value = String(body?.document || "");
         appState.settingsYamlLoaded = true;
-        if (statusEl) statusEl.textContent = "YAML loaded.";
+        if (statusEl) statusEl.textContent = t("yaml.loaded");
       } catch (err) {
-        if (statusEl) statusEl.textContent = `Could not load YAML: ${err}`;
+        if (statusEl) statusEl.textContent = t("yaml.loadErr2", { err });
       } finally {
         appState.settingsYamlRequestInFlight = false;
       }
@@ -823,12 +824,12 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       if (appState.settingsYamlRequestInFlight) return;
       appState.settingsYamlRequestInFlight = true;
       const statusEl = document.getElementById("settingsYamlStatus");
-      if (statusEl) statusEl.textContent = "Applying YAML...";
+      if (statusEl) statusEl.textContent = t("yaml.applying");
       try {
         const documentText = String(document.getElementById("settingsYamlInput").value || "");
         const { res, body } = await postJson("/internal/settings-document", { document: documentText });
         if (!res.ok) {
-          if (statusEl) statusEl.textContent = `Could not apply YAML (${body?.reason || res.status}).`;
+          if (statusEl) statusEl.textContent = t("yaml.applyErr", { reason: body?.reason || res.status });
           return;
         }
         clearModelSettingsDraftState();
@@ -837,11 +838,11 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
         if (body?.active_model_id) {
           appState.selectedSettingsModelId = String(body.active_model_id);
         }
-        if (statusEl) statusEl.textContent = "YAML applied.";
+        if (statusEl) statusEl.textContent = t("yaml.applied");
         appState.settingsYamlLoaded = true;
         if (_platform.pollStatus) await _platform.pollStatus();
       } catch (err) {
-        if (statusEl) statusEl.textContent = `Could not apply YAML: ${err}`;
+        if (statusEl) statusEl.textContent = t("yaml.applyErr2", { err });
       } finally {
         appState.settingsYamlRequestInFlight = false;
       }
@@ -856,7 +857,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       const discardBtn = document.getElementById("discardModelSettingsBtn");
       if (saveBtn) saveBtn.disabled = true;
       if (discardBtn) discardBtn.disabled = true;
-      if (statusEl) statusEl.textContent = "Saving model settings...";
+      if (statusEl) statusEl.textContent = t("su.savingModel");
       try {
         const settings = collectSelectedModelSettings();
         const { res, body } = await postJson("/internal/models/settings", {
@@ -864,16 +865,16 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
           settings,
         });
         if (!res.ok) {
-          if (statusEl) statusEl.textContent = `Could not save model settings (${body?.reason || res.status}).`;
+          if (statusEl) statusEl.textContent = t("su.saveErr", { reason: body?.reason || res.status });
           return;
         }
         clearModelSettingsDraftState();
         appState.displayedSettingsModelId = "";
         appState.modelSettingsStatusModelId = String(selectedModel?.id || "");
-        if (statusEl) statusEl.textContent = "Model settings updated.";
+        if (statusEl) statusEl.textContent = t("su.modelUpdated");
         if (_platform.pollStatus) await _platform.pollStatus();
       } catch (err) {
-        if (statusEl) statusEl.textContent = `Could not save model settings: ${err}`;
+        if (statusEl) statusEl.textContent = t("su.saveErr2", { err });
       } finally {
         appState.modelSettingsSaveInFlight = false;
         if (saveBtn) saveBtn.disabled = false;
@@ -888,17 +889,17 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       const statusEl = document.getElementById("projectorStatusText");
       const button = document.getElementById("downloadProjectorBtn");
       if (button) button.disabled = true;
-      if (statusEl) statusEl.textContent = "Downloading vision encoder...";
+      if (statusEl) statusEl.textContent = t("su.downloadingEncoder");
       try {
         const { res, body } = await postJson("/internal/models/download-projector", { model_id: selectedModel.id });
         if (!res.ok) {
-          if (statusEl) statusEl.textContent = `Could not download encoder (${body?.reason || res.status}).`;
+          if (statusEl) statusEl.textContent = t("su.encoderErr", { reason: body?.reason || res.status });
           return;
         }
         if (button) {
           button.dataset.projectorFilename = String(body?.projector_filename || "");
         }
-        if (statusEl) statusEl.textContent = `Vision encoder ready: ${body?.projector_filename || "downloaded"}`;
+        if (statusEl) statusEl.textContent = t("su.encoderReady", { file: body?.projector_filename || t("su.encoderDownloaded") });
         if (_platform.pollStatus) await _platform.pollStatus();
       } catch (err) {
         if (statusEl) statusEl.textContent = `Could not download encoder: ${err}`;

@@ -1,7 +1,7 @@
 "use strict";
 
 import "./csrf.js"; // must be first — installs the same-origin CSRF fetch wrapper
-import { initI18n, applyTranslations, setLang, getLang, SUPPORTED, LANG_NAMES, onLangChange } from "./i18n.js";
+import { initI18n, applyTranslations, setLang, getLang, SUPPORTED, LANG_NAMES, onLangChange, t } from "./i18n.js";
 import { appState, defaultSettings, STATUS_POLL_TIMEOUT_MS } from "./state.js";
 import { formatCountdownSeconds } from "./utils.js";
 import { isLocalModelConnected, updateLlamaIndicator, renderDownloadPrompt, renderStatusActions, renderCompatibilityWarnings, formatSidebarStatusDetail, findResumableFailedModel } from "./status.js";
@@ -168,8 +168,8 @@ import { registerPlatformShell } from "./platform-controls.js";
       setSidebarNote(statusPayload);
       const modelNameField = document.getElementById("modelName");
       if (modelNameField) {
-        const modelName = statusPayload?.model?.filename || "Unknown model";
-        modelNameField.textContent = statusPayload?.model_present ? modelName : `${modelName} (not loaded)`;
+        const modelName = statusPayload?.model?.filename || t("su.unknownModel");
+        modelNameField.textContent = statusPayload?.model_present ? modelName : t("su.notLoaded", { name: modelName });
       }
       updateLlamaIndicator(statusPayload);
       if (appState.modelSwitcherOpen) populateModelSwitcher();
