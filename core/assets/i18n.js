@@ -23,6 +23,16 @@ export const LANG_NAMES = {
   pt: "Português",
 };
 
+// Right-to-left languages. All shipped locales are LTR today; adding an RTL
+// language (e.g. "ar", "he") here flips <html dir> automatically. Before
+// shipping an RTL locale, migrate the remaining physical CSS offsets
+// (left/right, margin-left, …) to logical properties — see docs/i18n.md.
+export const RTL_LANGS = new Set(["ar", "fa", "he", "ur"]);
+
+export function dirFor(lang) {
+  return RTL_LANGS.has(lang) ? "rtl" : "ltr";
+}
+
 let _lang = DEFAULT_LANG;
 let _dict = {};      // active locale dictionary
 let _fallback = {};  // en dictionary (always loaded)
@@ -57,6 +67,7 @@ export async function initI18n() {
   _dict = _lang === DEFAULT_LANG ? _fallback : await _fetchLocale(_lang).catch(() => _fallback);
   if (typeof document !== "undefined") {
     document.documentElement.setAttribute("lang", _lang);
+    document.documentElement.setAttribute("dir", dirFor(_lang));
   }
   return _lang;
 }
@@ -111,6 +122,7 @@ export async function setLang(lang) {
   _dict = lang === DEFAULT_LANG ? _fallback : await _fetchLocale(lang).catch(() => _fallback);
   if (typeof document !== "undefined") {
     document.documentElement.setAttribute("lang", lang);
+    document.documentElement.setAttribute("dir", dirFor(lang));
     applyTranslations(document);
   }
   for (const fn of _listeners) {
