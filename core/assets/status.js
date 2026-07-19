@@ -48,11 +48,11 @@ import { t } from "./i18n.js";
       if (backendMode === "fake" && isReady) {
         badge.classList.add("online");
         dot.classList.add("online");
-        label.textContent = "CONNECTED:Fake Backend";
+        label.textContent = `${t("badge.connected")}:Fake Backend`;
       } else if (isHealthy) {
         badge.classList.add("online");
         dot.classList.add("online");
-        label.textContent = `CONNECTED:${runtimeLabel}${modelSuffix}`;
+        label.textContent = `${t("badge.connected")}:${runtimeLabel}${modelSuffix}`;
       } else if (isLoading) {
         badge.classList.add("loading");
         dot.classList.add("loading");
@@ -64,15 +64,15 @@ import { t } from "./i18n.js";
           spinner.style.setProperty("--load-pct", loadPct);
         }
         const pctSuffix = typeof loadPct === "number" ? `:${loadPct}%` : modelSuffix;
-        label.textContent = `LOADING:${runtimeLabel}${pctSuffix}`;
+        label.textContent = `${t("badge.loading")}:${runtimeLabel}${pctSuffix}`;
       } else if (isFailed) {
         badge.classList.add("failed");
         dot.classList.add("failed");
-        label.textContent = `FAILED:${runtimeLabel}${modelSuffix}`;
+        label.textContent = `${t("badge.failed")}:${runtimeLabel}${modelSuffix}`;
       } else {
         badge.classList.add("offline");
         dot.classList.add("offline");
-        label.textContent = `DISCONNECTED:${runtimeLabel}`;
+        label.textContent = `${t("badge.disconnected")}:${runtimeLabel}`;
       }
     }
 
@@ -95,7 +95,7 @@ import { t } from "./i18n.js";
       const downloadActive = statusPayload?.download?.active === true || state === "DOWNLOADING";
       if (hasModel || downloadActive || state === "READY") {
         prompt.hidden = true;
-        startBtn.textContent = "Start download now";
+        startBtn.textContent = t("download.startNow");
         startBtn.disabled = false;
         return;
       }
@@ -105,8 +105,8 @@ import { t } from "./i18n.js";
       const titleEl = prompt.querySelector(".download-prompt-title");
       if (titleEl) {
         titleEl.textContent = defaultModelFilename
-          ? `${defaultModelFilename} download required`
-          : "Model download required";
+          ? t("dl.requiredNamed", { name: defaultModelFilename })
+          : t("download.required");
       }
       const countdownEnabled = statusPayload?.download?.countdown_enabled !== false;
       const autoStartRemaining = Number(statusPayload.download.auto_start_remaining_seconds);
@@ -118,17 +118,15 @@ import { t } from "./i18n.js";
         || (Number.isFinite(freeBytes) && freeBytes < 512 * 1024 * 1024)
       ) {
         const free = formatBytes(statusPayload?.system?.storage_free_bytes);
-        hint.textContent = `Not enough free storage for this model. Free space: ${free}. Delete model files and retry.`;
+        hint.textContent = t("dl.insufficientStorage", { free });
       } else if (downloadError === "download_failed" && resumableFailedModel) {
-        hint.textContent =
-          `Last download failed at ${formatBytes(resumableFailedModel?.bytes_downloaded)} ` +
-          `of ${formatBytes(resumableFailedModel?.bytes_total)}. Resume when ready.`;
+        hint.textContent = t("dl.lastFailed", { done: formatBytes(resumableFailedModel?.bytes_downloaded), total: formatBytes(resumableFailedModel?.bytes_total) });
       } else if (!countdownEnabled) {
-        hint.textContent = "Auto-download is paused. Start manually or re-enable it in settings.";
+        hint.textContent = t("dl.autoPaused");
       } else if (Number.isFinite(autoStartRemaining) && autoStartRemaining > 0) {
-        hint.textContent = `Auto-download starts in ${formatCountdownSeconds(autoStartRemaining)} if idle. Waiting to confirm the Pi isn't busy before starting.`;
+        hint.textContent = t("dl.autoCountdown", { time: formatCountdownSeconds(autoStartRemaining) });
       } else {
-        hint.textContent = "Auto-download starts soon if idle.";
+        hint.textContent = t("dl.autoSoon");
       }
 
       // Vision models pull a second file (the vision encoder / projector) right
@@ -141,15 +139,14 @@ import { t } from "./i18n.js";
         || (Number.isFinite(freeBytes) && freeBytes < 512 * 1024 * 1024)
         || (downloadError === "download_failed" && resumableFailedModel);
       if (isVisionModel && !isStorageOrFailure) {
-        hint.textContent +=
-          " This is a vision model, so a separate vision encoder is downloaded right after the main weights.";
+        hint.textContent += t("dl.visionEncoderNote");
       }
 
       if (appState.downloadStartInFlight) {
-        startBtn.textContent = resumableFailedModel ? "Resuming..." : "Starting...";
+        startBtn.textContent = resumableFailedModel ? t("dl.resuming") : t("dl.starting");
         startBtn.disabled = true;
       } else {
-        startBtn.textContent = resumableFailedModel ? "Resume download" : "Start download now";
+        startBtn.textContent = resumableFailedModel ? t("bar.resumeDownload") : t("download.startNow");
         startBtn.disabled = false;
       }
     }
@@ -165,7 +162,7 @@ import { t } from "./i18n.js";
       const showResume = hasModel && state === "READY" && downloadError === "download_failed" && !!resumableFailedModel;
       actions.hidden = !showResume;
       resumeBtn.disabled = appState.downloadStartInFlight;
-      resumeBtn.textContent = appState.downloadStartInFlight ? "Resuming..." : "Resume";
+      resumeBtn.textContent = appState.downloadStartInFlight ? t("dl.resuming") : t("status.resume");
     }
 
     export function renderCompatibilityWarnings(statusPayload) {
@@ -184,16 +181,16 @@ import { t } from "./i18n.js";
         if (overrideBtn) {
           overrideBtn.hidden = true;
           overrideBtn.disabled = false;
-          overrideBtn.textContent = "Try anyway";
+          overrideBtn.textContent = t("runtime.tryAnyway");
         }
         return;
       }
       const text = warnings
-        .map((item) => String(item?.message || "Compatibility warning"))
+        .map((item) => String(item?.message || t("compat.warning")))
         .filter((item) => item.length > 0)
         .join(" | ");
-      if (textEl) textEl.textContent = text || "Compatibility warning";
-      else el.textContent = text || "Compatibility warning";
+      if (textEl) textEl.textContent = text || t("compat.warning");
+      else el.textContent = text || t("compat.warning");
       if (overrideBtn) {
         overrideBtn.hidden = overrideEnabled;
       }
@@ -209,19 +206,19 @@ import { t } from "./i18n.js";
       const downloadError = String(download.error || "");
       const resumableFailedModel = findResumableFailedModel(statusPayload);
       if (downloadActive) {
-        return `Download: ${download.percent}% (${downloaded} / ${total})`;
+        return t("sd.downloadPct", { pct: download.percent, done: downloaded, total });
       }
       const projDl = statusPayload?.projector_download;
       if (projDl && projDl.active === true) {
-        return `Downloading vision encoder (${formatBytes(projDl.bytes_downloaded || 0)})`;
+        return t("sd.downloadingEncoder", { bytes: formatBytes(projDl.bytes_downloaded || 0) });
       }
       if (downloadError === "download_failed" && resumableFailedModel) {
-        return `Download failed (${downloaded} / ${total})`;
+        return t("sd.downloadFailed", { done: downloaded, total });
       }
       if (download.auto_download_paused === true) {
-        return "Auto-download paused";
+        return t("sd.autoPaused");
       }
-      return "No active download";
+      return t("sd.noActive");
     }
 
     export function formatModelStatusLabel(rawStatus) {

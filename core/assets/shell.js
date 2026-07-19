@@ -161,7 +161,7 @@ import { registerPlatformShell } from "./platform-controls.js";
     function setStatus(statusPayload) {
       appState.latestStatus = statusPayload;
       const downloadText = formatSidebarStatusDetail(statusPayload);
-      const text = `State: ${statusPayload.state} | ${downloadText}`;
+      const text = t("ui.statePrefix", { state: statusPayload.state, detail: downloadText });
       const statusEl = document.getElementById("statusText");
       if (statusEl) statusEl.textContent = text;
       renderStatusActions(statusPayload);
