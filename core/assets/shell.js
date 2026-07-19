@@ -383,6 +383,19 @@ import { registerPlatformShell } from "./platform-controls.js";
 
     // ── Shell init ───────────────────────────────────────────────────────
 
+    // Load translations (English fallback + active locale) before any UI init,
+    // so both static markup and JS-rendered strings (runtime toggle, status
+    // lines) localize from the very first call.
+    await initI18n().catch((err) => { console.error("i18n init failed:", err); });
+    applyTranslations(document);
+    initLanguageSelector();
+    // On language change: re-hydrate static markup and re-run the render
+    // pipeline so JS-driven strings pick up the new locale immediately.
+    onLangChange(() => {
+      applyTranslations(document);
+      if (appState.latestStatus) setStatus(appState.latestStatus);
+    });
+
     const settings = loadSettings();
     applyTheme(settings.theme);
     setRuntimeDetailsExpanded(true);
@@ -506,18 +519,6 @@ import { registerPlatformShell } from "./platform-controls.js";
         wrapper.innerHTML = `<p style="padding:2rem;color:var(--text-muted)">Failed to load ${appId}</p>`;
       }
     }
-
-    // Load translations (English fallback + active locale) before hydrating,
-    // so static markup renders in the chosen language from the first paint.
-    await initI18n().catch((err) => { console.error("i18n init failed:", err); });
-    applyTranslations(document);
-    initLanguageSelector();
-    // On language change: re-hydrate static markup and re-run the render
-    // pipeline so JS-driven strings pick up the new locale immediately.
-    onLangChange(() => {
-      applyTranslations(document);
-      if (appState.latestStatus) setStatus(appState.latestStatus);
-    });
 
     // Discover apps, then load the first available UI app, then start polling
     const appContainer = document.getElementById("appContainer");

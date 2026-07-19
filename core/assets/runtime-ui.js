@@ -1,6 +1,7 @@
 "use strict";
 
 import { appState, CPU_CLOCK_MAX_HZ_PI5, GPU_CLOCK_MAX_HZ_PI5 } from "./state.js";
+import { t } from "./i18n.js";
 
     function _cpuMaxHz(systemPayload) {
       return Number(systemPayload?.device_clock_limits?.cpu_max_hz) || CPU_CLOCK_MAX_HZ_PI5;
@@ -22,7 +23,7 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
         compact.hidden = appState.runtimeDetailsExpanded;
       }
       if (toggle) {
-        toggle.textContent = appState.runtimeDetailsExpanded ? "Hide details" : "Show details";
+        toggle.textContent = appState.runtimeDetailsExpanded ? t("ru.hideDetails") : t("runtime.showDetails");
         toggle.setAttribute("aria-expanded", appState.runtimeDetailsExpanded ? "true" : "false");
       }
     }
@@ -59,7 +60,7 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
       const updatedDetail = document.getElementById("runtimeDetailUpdatedValue");
 
       if (!available) {
-        compact.textContent = "CPU -- | Cores -- | GPU -- | Swap -- | Throttle --";
+        compact.textContent = t("ru.compactPlaceholder");
         if (cpuDetail) cpuDetail.textContent = "--";
         if (coresDetail) coresDetail.textContent = "--";
         if (cpuClockDetail) cpuClockDetail.textContent = "--";
@@ -79,8 +80,8 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
         if (kernelDetail) kernelDetail.textContent = "--";
         if (bootloaderDetail) bootloaderDetail.textContent = "--";
         if (firmwareDetail) firmwareDetail.textContent = "--";
-        if (powerDetail) powerDetail.textContent = "Power (estimated total): --";
-        if (powerRawDetail) powerRawDetail.textContent = "Power (PMIC raw): --";
+        if (powerDetail) powerDetail.textContent = `${t("ru.powerTotalLabel")}: --`;
+        if (powerRawDetail) powerRawDetail.textContent = `${t("ru.powerPmicRawLabel")}: --`;
         if (gpuDetail) gpuDetail.textContent = "--";
         if (throttleDetail) throttleDetail.textContent = "--";
         if (throttleHistoryDetail) throttleHistoryDetail.textContent = "--";
@@ -116,7 +117,7 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
       const swapPercent = formatPercent(systemPayload?.swap_percent, 0);
       const storageFree = formatBytes(systemPayload?.storage_free_bytes);
       const storagePercent = formatPercent(systemPayload?.storage_percent, 0);
-      const throttlingNow = systemPayload?.throttling?.any_current === true ? "Yes" : "No";
+      const throttlingNow = systemPayload?.throttling?.any_current === true ? t("ru.yes") : t("ru.no");
       const memTotalCompact = Number(systemPayload?.memory_total_bytes);
       const memFreeCompact = Number(systemPayload?.memory_available_bytes);
       const ramUsedCompact = Number.isFinite(memTotalCompact) && Number.isFinite(memFreeCompact) ? memTotalCompact - memFreeCompact : 0;
@@ -124,9 +125,9 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
         ? Math.round(ramUsedCompact / memTotalCompact * 100)
         : null;
       const memCompactText = ramPctCompact !== null
-        ? `RAM ${ramPctCompact}%`
-        : `Mem ${formatPercent(systemPayload?.memory_percent, 0)}`;
-      compact.textContent = `CPU ${cpuTotal} @ ${cpuClock} | Cores ${coresText} | GPU ${gpuCompact} | ${memCompactText} | ${swapLabel} ${swapPercent} | Free ${storageFree} | Throttle ${throttlingNow}`;
+        ? t("ru.ramCompact", { pct: ramPctCompact })
+        : t("ru.memCompact", { pct: formatPercent(systemPayload?.memory_percent, 0) });
+      compact.textContent = t("ru.compact", { cpu: cpuTotal, clock: cpuClock, cores: coresText, gpu: gpuCompact, mem: memCompactText, swapLabel, swapPct: swapPercent, free: storageFree, throttle: throttlingNow });
 
       if (cpuDetail) cpuDetail.textContent = cpuTotal;
       if (coresDetail) coresDetail.textContent = coresText;
@@ -198,19 +199,19 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
           const capacityBytes = (Number.isFinite(limit) && limit > 0) ? limit : (Number.isFinite(swapTotalNum) && swapTotalNum > 0 ? swapTotalNum : 0);
           const capacityText = capacityBytes > 0 ? ` / ${formatBytes(capacityBytes)}` : "";
           if (origSize > 0 && Number.isFinite(ratio)) {
-            swapDetail.textContent = `${formatBytes(origSize)} compressed (${ratio.toFixed(1)}x)${capacityText}`;
+            swapDetail.textContent = t("ru.zramCompressed", { orig: formatBytes(origSize), ratio: ratio.toFixed(1), cap: capacityText });
           } else {
-            swapDetail.textContent = `idle${capacityText}`;
+            swapDetail.textContent = t("ru.zramIdle", { cap: capacityText });
           }
         } else {
-          swapDetail.textContent = `${swapUsed} / ${swapTotal} (${swapPercent})`;
+          swapDetail.textContent = t("ru.swapUsage", { used: swapUsed, total: swapTotal, pct: swapPercent });
         }
       }
       applyRuntimeMetricSeverity(swapDetail, systemPayload?.swap_percent);
 
       const storageUsed = formatBytes(systemPayload?.storage_used_bytes);
       const storageTotal = formatBytes(systemPayload?.storage_total_bytes);
-      if (storageDetail) storageDetail.textContent = `${storageFree} (${storageUsed} / ${storageTotal} used, ${storagePercent})`;
+      if (storageDetail) storageDetail.textContent = t("ru.storageDetail", { free: storageFree, used: storageUsed, total: storageTotal, pct: storagePercent });
       applyRuntimeMetricSeverity(storageDetail, systemPayload?.storage_percent);
 
       const tempRaw = systemPayload?.temperature_c;
@@ -274,8 +275,8 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
       const rawPowerWatts = Number(powerEstimate?.raw_total_watts ?? powerEstimate?.total_watts);
       const adjustedPowerWatts = Number(powerEstimate?.adjusted_total_watts);
       const isCpuLoadMethod = powerEstimate?.method === "cpu_load_estimate";
-      const powerLabel = isCpuLoadMethod ? "Power (estimated total)" : "Power (estimated total)";
-      const rawLabel = isCpuLoadMethod ? "Power (CPU load raw)" : "Power (PMIC raw)";
+      const powerLabel = t("ru.powerTotalLabel");
+      const rawLabel = isCpuLoadMethod ? t("ru.powerCpuRawLabel") : t("ru.powerPmicRawLabel");
       if (powerDetail) {
         powerDetail.textContent = Number.isFinite(adjustedPowerWatts) && powerEstimate?.available === true
           ? `${powerLabel}: ${adjustedPowerWatts.toFixed(3)} W`
@@ -287,7 +288,7 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
           : `${rawLabel}: --`;
       }
 
-      if (gpuDetail) gpuDetail.textContent = `core ${gpuCore}, v3d ${gpuV3d}`;
+      if (gpuDetail) gpuDetail.textContent = t("ru.gpuDetail", { core: gpuCore, v3d: gpuV3d });
       const gpuPeakHz = Math.max(
         Number(systemPayload?.gpu_clock_core_hz) || 0,
         Number(systemPayload?.gpu_clock_v3d_hz) || 0,
@@ -302,13 +303,13 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
         : [];
       if (throttleDetail) {
         throttleDetail.textContent = currentFlags.length > 0
-          ? `Yes (${currentFlags.join(", ")})`
-          : "No";
+          ? t("ru.throttleYes", { flags: currentFlags.join(", ") })
+          : t("ru.no");
       }
       if (throttleHistoryDetail) {
         throttleHistoryDetail.textContent = historyFlags.length > 0
           ? historyFlags.join(", ")
-          : "None";
+          : t("ru.throttleNone");
       }
 
       const updatedTs = Number(systemPayload?.updated_at_unix);
@@ -327,63 +328,63 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
     export function setModelUploadStatus(message) {
       const el = document.getElementById("modelUploadStatus");
       if (!el) return;
-      el.textContent = String(message || "No upload in progress.");
+      el.textContent = String(message || t("addModel.uploadIdle"));
     }
 
     export function setLlamaRuntimeSwitchStatus(message) {
       const el = document.getElementById("llamaRuntimeSwitchStatus");
       if (!el) return;
-      el.textContent = String(message || "No runtime switch in progress.");
+      el.textContent = String(message || t("adv.switchStatus"));
     }
 
     export function setLlamaMemoryLoadingStatus(message) {
       const el = document.getElementById("llamaMemoryLoadingStatus");
       if (!el) return;
-      el.textContent = String(message || "Current memory loading: unknown");
+      el.textContent = String(message || t("adv.memoryStatus"));
     }
 
     export function setLargeModelOverrideStatus(message) {
       const el = document.getElementById("largeModelOverrideStatus");
       if (!el) return;
-      el.textContent = String(message || "Compatibility override: default warnings");
+      el.textContent = String(message || t("adv.compatStatus"));
     }
 
     export function setPowerCalibrationStatus(message) {
       const el = document.getElementById("powerCalibrationStatus");
       if (!el) return;
-      el.textContent = String(message || "Power calibration: default correction");
+      el.textContent = String(message || t("adv.calibStatus"));
     }
 
     export function setPowerCalibrationLiveStatus(message) {
       const el = document.getElementById("powerCalibrationLiveStatus");
       if (!el) return;
-      el.textContent = String(message || "Current PMIC raw power: --");
+      el.textContent = String(message || t("ru.pmicRawDash"));
     }
 
     export function setLlamaRuntimeSwitchButtonState(inFlight) {
       const btn = document.getElementById("switchLlamaRuntimeBtn");
       if (!btn) return;
       btn.disabled = Boolean(inFlight);
-      btn.textContent = inFlight ? "Switching..." : "Switch llama runtime";
+      btn.textContent = inFlight ? t("ru.switching") : t("ru.switchLlamaRuntime");
     }
 
     export function setLlamaMemoryLoadingButtonState(inFlight) {
       const btn = document.getElementById("applyLlamaMemoryLoadingBtn");
       if (!btn) return;
       btn.disabled = Boolean(inFlight);
-      btn.textContent = inFlight ? "Applying..." : "Apply memory loading + restart";
+      btn.textContent = inFlight ? t("ru.applying") : t("adv.applyMemory");
     }
 
     export function setLargeModelOverrideButtonState(inFlight) {
       const btn = document.getElementById("applyLargeModelOverrideBtn");
       if (btn) {
         btn.disabled = Boolean(inFlight);
-        btn.textContent = inFlight ? "Applying..." : "Apply compatibility override";
+        btn.textContent = inFlight ? t("ru.applying") : t("adv.applyCompat");
       }
       const quickBtn = document.getElementById("compatibilityOverrideBtn");
       if (quickBtn) {
         quickBtn.disabled = Boolean(inFlight);
-        quickBtn.textContent = inFlight ? "Applying..." : "Try anyway";
+        quickBtn.textContent = inFlight ? t("ru.applying") : t("runtime.tryAnyway");
       }
     }
 
@@ -396,13 +397,13 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
         btn.disabled = Boolean(inFlight);
       }
       if (captureBtn) {
-        captureBtn.textContent = inFlight ? "Capturing..." : "Capture calibration sample";
+        captureBtn.textContent = inFlight ? t("ru.capturing") : t("adv.captureSample");
       }
       if (fitBtn) {
-        fitBtn.textContent = inFlight ? "Computing..." : "Compute calibration";
+        fitBtn.textContent = inFlight ? t("ru.computing") : t("adv.computeCalib");
       }
       if (resetBtn) {
-        resetBtn.textContent = inFlight ? "Resetting..." : "Reset calibration";
+        resetBtn.textContent = inFlight ? t("ru.resetting") : t("adv.resetCalib");
       }
     }
 
@@ -423,7 +424,7 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
         if (!parts.length && serverPresent) {
           parts.push("custom/current install");
         }
-        currentEl.textContent = `Current runtime: ${parts.join(" | ") || "unknown"}`;
+        currentEl.textContent = t("ru.currentRuntimeVal", { info: parts.join(" | ") || t("ru.unknown") });
       }
 
       if (selectEl) {
@@ -435,7 +436,7 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
         if (!runtimes.length) {
           const option = document.createElement("option");
           option.value = "";
-          option.textContent = "No runtimes available";
+          option.textContent = t("adv.noRuntimes");
           selectEl.appendChild(option);
           selectEl.disabled = true;
         } else {
@@ -463,13 +464,13 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
       }
       if (memoryLoading?.label) {
         const restartNote = memoryLoading?.no_mmap_env === "1"
-          ? " (full RAM preload enabled)"
+          ? t("ru.restartFullRam")
           : memoryLoading?.no_mmap_env === "0"
-          ? " (mmap enabled)"
-          : " (auto)";
-        setLlamaMemoryLoadingStatus(`Current memory loading: ${memoryLoading.label}${restartNote}`);
+          ? t("ru.restartMmap")
+          : t("ru.restartAuto");
+        setLlamaMemoryLoadingStatus(t("ru.currentMemoryVal", { label: memoryLoading.label, note: restartNote }));
       } else {
-        setLlamaMemoryLoadingStatus("Current memory loading: unknown");
+        setLlamaMemoryLoadingStatus(t("adv.memoryStatus"));
       }
 
       const largeModelOverrideToggle = document.getElementById("largeModelOverrideEnabled");
@@ -479,18 +480,18 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
         largeModelOverrideToggle.checked = overrideEnabled;
       }
       if (overrideEnabled) {
-        setLargeModelOverrideStatus("Compatibility override: trying unsupported large models is enabled");
+        setLargeModelOverrideStatus(t("ru.compatOverrideOn"));
       } else {
-        setLargeModelOverrideStatus("Compatibility override: default warnings");
+        setLargeModelOverrideStatus(t("adv.compatStatus"));
       }
 
       const powerEstimate = statusPayload?.system?.power_estimate || {};
       const calibration = powerEstimate?.calibration || {};
       const rawPower = Number(powerEstimate?.raw_total_watts ?? powerEstimate?.total_watts);
       if (Number.isFinite(rawPower) && powerEstimate?.available === true) {
-        setPowerCalibrationLiveStatus(`Current PMIC raw power: ${rawPower.toFixed(3)} W`);
+        setPowerCalibrationLiveStatus(t("ru.pmicRawVal", { w: rawPower.toFixed(3) }));
       } else {
-        setPowerCalibrationLiveStatus("Current PMIC raw power: --");
+        setPowerCalibrationLiveStatus(t("ru.pmicRawDash"));
       }
       const mode = String(calibration?.mode || "default");
       const sampleCount = Number(calibration?.sample_count || 0);
@@ -498,24 +499,24 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
       const coeffB = Number(calibration?.b);
       if (mode === "custom") {
         setPowerCalibrationStatus(
-          `Power calibration: meter-calibrated (${sampleCount} samples, a=${Number.isFinite(coeffA) ? coeffA.toFixed(4) : "--"}, b=${Number.isFinite(coeffB) ? coeffB.toFixed(4) : "--"})`
+          t("ru.calibMeter", { n: sampleCount, a: Number.isFinite(coeffA) ? coeffA.toFixed(4) : "--", b: Number.isFinite(coeffB) ? coeffB.toFixed(4) : "--" })
         );
       } else {
         setPowerCalibrationStatus(
-          `Power calibration: default correction (${sampleCount} stored samples${sampleCount >= 2 ? ", ready to fit" : ""})`
+          t("ru.calibDefault", { n: sampleCount, ready: sampleCount >= 2 ? t("ru.readyToFit") : "" })
         );
       }
 
       const switchState = runtimePayload?.switch || {};
       if (switchState?.active) {
-        const target = String(switchState?.target_family || "selected runtime");
-        setLlamaRuntimeSwitchStatus(`Switching runtime... ${target}`);
+        const target = String(switchState?.target_family || t("ru.selectedRuntime"));
+        setLlamaRuntimeSwitchStatus(t("ru.switchingRuntime", { target }));
       } else if (switchState?.error) {
-        setLlamaRuntimeSwitchStatus(`Last runtime switch error: ${switchState.error}`);
+        setLlamaRuntimeSwitchStatus(t("ru.switchError", { error: switchState.error }));
       } else if (runtimePayload?.current?.family || runtimePayload?.current?.source_bundle_name) {
-        setLlamaRuntimeSwitchStatus(`Active runtime: ${runtimePayload.current.family || runtimePayload.current.source_bundle_name}`);
+        setLlamaRuntimeSwitchStatus(t("ru.activeRuntime", { name: runtimePayload.current.family || runtimePayload.current.source_bundle_name }));
       } else {
-        setLlamaRuntimeSwitchStatus("No runtime switch in progress.");
+        setLlamaRuntimeSwitchStatus(t("adv.switchStatus"));
       }
 
       setLlamaRuntimeSwitchButtonState(appState.llamaRuntimeSwitchInFlight || switchState?.active === true);
@@ -530,13 +531,13 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
       if (upload?.active) {
         if (cancelBtn) cancelBtn.hidden = false;
         const percent = Number(upload.percent || 0);
-        setModelUploadStatus(`Uploading model... ${percent}% (${formatBytes(upload.bytes_received)} / ${formatBytes(upload.bytes_total)})`);
+        setModelUploadStatus(t("ru.uploadingModel", { pct: percent, done: formatBytes(upload.bytes_received), total: formatBytes(upload.bytes_total) }));
         return;
       }
       if (cancelBtn) cancelBtn.hidden = true;
       if (upload?.error) {
-        setModelUploadStatus(`Upload state: ${upload.error}`);
+        setModelUploadStatus(t("ru.uploadState", { error: upload.error }));
       } else {
-        setModelUploadStatus("No upload in progress.");
+        setModelUploadStatus(t("addModel.uploadIdle"));
       }
     }
