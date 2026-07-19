@@ -8,6 +8,9 @@ POTATO_USER="${POTATO_USER:-potato}"
 POTATO_GROUP="${POTATO_GROUP:-potato}"
 POTATO_HOSTNAME="${POTATO_HOSTNAME:-potato}"
 POTATO_ENFORCE_HOSTNAME="${POTATO_ENFORCE_HOSTNAME:-1}"
+# Opt-in HTTPS: when POTATO_TLS=1, serve the portal over TLS with a
+# self-signed cert (see docs/tls.md). Default is plain HTTP.
+POTATO_TLS="${POTATO_TLS:-0}"
 LLAMA_RUNTIME_DIR="${POTATO_LLAMA_RUNTIME_DIR:-${TARGET_ROOT}/llama}"
 LLAMA_BUNDLE_ROOT="${POTATO_LLAMA_BUNDLE_ROOT:-${REPO_ROOT}/references/old_reference_design/llama_cpp_binary}"
 LLAMA_BUNDLE_SRC="${POTATO_LLAMA_BUNDLE_SRC:-}"
@@ -297,7 +300,18 @@ done
 run_sudo chown -R "${POTATO_USER}:${POTATO_GROUP}" "${TARGET_ROOT}"
 normalize_runtime_dir_permissions
 
-if [ -f "${TARGET_ROOT}/nginx/potato.conf" ]; then
+if [ "${POTATO_TLS}" = "1" ]; then
+  # HTTPS: generate a self-signed cert and install the TLS server block.
+  run_sudo "${TARGET_ROOT}/bin/gen_tls_cert.sh" "${TARGET_ROOT}/state/tls" "${POTATO_HOSTNAME}"
+  run_sudo chown -R "${POTATO_USER}:${POTATO_GROUP}" "${TARGET_ROOT}/state/tls"
+  if [ -f "${TARGET_ROOT}/nginx/potato-tls.conf" ]; then
+    run_sudo install -m 0644 "${TARGET_ROOT}/nginx/potato-tls.conf" /etc/nginx/sites-available/potato
+    run_sudo ln -sf /etc/nginx/sites-available/potato /etc/nginx/sites-enabled/potato
+    run_sudo rm -f /etc/nginx/sites-enabled/default
+    run_sudo nginx -t
+    printf 'HTTPS enabled — portal will be reachable at https://%s.local/\n' "${POTATO_HOSTNAME}"
+  fi
+elif [ -f "${TARGET_ROOT}/nginx/potato.conf" ]; then
   run_sudo install -m 0644 "${TARGET_ROOT}/nginx/potato.conf" /etc/nginx/sites-available/potato
   run_sudo ln -sf /etc/nginx/sites-available/potato /etc/nginx/sites-enabled/potato
   run_sudo rm -f /etc/nginx/sites-enabled/default

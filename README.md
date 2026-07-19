@@ -150,6 +150,8 @@ for a full shell).
 > your LAN. Don't expose the portal to untrusted networks or the internet. To
 > reach it through a custom hostname or public address, set
 > `POTATO_ALLOWED_HOSTS` (comma-separated) so the `Host` guard accepts it.
+> HTTP is the default; opt into HTTPS with a self-signed cert via
+> `POTATO_TLS=1` at install — see [docs/tls.md](docs/tls.md).
 
 ---
 
