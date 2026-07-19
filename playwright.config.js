@@ -17,6 +17,10 @@ module.exports = defineConfig({
     browserName: "chromium",
     headless: true,
     trace: "on-first-retry",
+    // Pin the browser language so i18n resolves to English deterministically
+    // (navigator.language → "en") regardless of the CI machine's locale.
+    // Tests assert against the English source-of-truth strings.
+    locale: "en-US",
   },
   webServer: {
     command: [
