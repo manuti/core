@@ -485,5 +485,7 @@
   "errcode.upload_too_large": "upload too large",
   "errcode.url_not_allowed": "model URL not allowed",
   "errcode.download_failed": "download failed",
-  "errcode.cancel_requested": "cancel requested"
+  "errcode.cancel_requested": "cancel requested",
+  "errcode.invalid_json": "invalid request body",
+  "errcode.terminal_session_limit": "terminal session limit reached"
 }

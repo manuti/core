@@ -485,5 +485,7 @@
   "errcode.upload_too_large": "téléversement trop volumineux",
   "errcode.url_not_allowed": "URL de modèle non autorisée",
   "errcode.download_failed": "le téléchargement a échoué",
-  "errcode.cancel_requested": "annulation demandée"
+  "errcode.cancel_requested": "annulation demandée",
+  "errcode.invalid_json": "corps de requête non valide",
+  "errcode.terminal_session_limit": "limite de sessions de terminal atteinte"
 }

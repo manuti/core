@@ -34,3 +34,14 @@ test("llama.cpp image-not-supported error still surfaces the localized notice", 
   expect(result).not.toContain("Request failed");
   expect(result.length).toBeGreaterThan(0);
 });
+
+test("backend error code (invalid_json) is localized via errcode.*", async ({ page }) => {
+  await page.goto("/");
+  await waitForStatusApplied(page);
+  const result = await page.evaluate(async () => {
+    const mod = await import("/app/chat/assets/chat-engine.js");
+    return mod.formatChatFailureMessage(400, { detail: "invalid_json" }, {});
+  });
+  expect(result).not.toContain("invalid_json");   // raw code not shown
+  expect(result).toContain("400");                // generic request-failed path
+});

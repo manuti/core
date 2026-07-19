@@ -485,5 +485,7 @@
   "errcode.upload_too_large": "carregamento demasiado grande",
   "errcode.url_not_allowed": "URL de modelo não permitido",
   "errcode.download_failed": "a transferência falhou",
-  "errcode.cancel_requested": "cancelamento solicitado"
+  "errcode.cancel_requested": "cancelamento solicitado",
+  "errcode.invalid_json": "corpo do pedido inválido",
+  "errcode.terminal_session_limit": "limite de sessões de terminal atingido"
 }

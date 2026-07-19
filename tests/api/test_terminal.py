@@ -108,7 +108,9 @@ def test_terminal_session_limit(terminal_client):
         with terminal_client.websocket_connect(_ws_url(terminal_client), headers={"origin": "http://testserver"}) as overflow_ws:
             msgs = _recv_until(overflow_ws, lambda m: m["type"] == "error")
             assert any(
-                m["type"] == "error" and "limit" in m.get("message", "").lower()
+                m["type"] == "error"
+                and m.get("code") == "terminal_session_limit"
+                and "limit" in m.get("message", "").lower()
                 for m in msgs
             )
     finally:

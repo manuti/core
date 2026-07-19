@@ -1,7 +1,7 @@
 "use strict";
 
 import { appState } from "./state.js";
-import { t } from "./i18n.js";
+import { t, tReason } from "./i18n.js";
 
 let _terminal = null;
 let _fitAddon = null;
@@ -62,7 +62,7 @@ function _connectWebSocket() {
       _setStatus(t("term.sessionEnded"));
       _setReconnectVisible(true);
     } else if (msg.type === "error") {
-      _setStatus(t("term.errorMsg", { msg: msg.message || t("ru.unknown") }));
+      _setStatus(t("term.errorMsg", { msg: tReason(msg.code) || msg.message || t("ru.unknown") }));
       _setReconnectVisible(true);
     }
   };

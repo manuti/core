@@ -678,3 +678,14 @@ def _set_active_model_ready(runtime, model_id: str, filename: str) -> None:
             ],
         },
     )
+
+
+def test_chat_rejects_invalid_json_with_stable_code(client):
+    # Malformed body → 400 with a stable code the UI localizes (errcode.invalid_json)
+    resp = client.post(
+        "/v1/chat/completions",
+        data=b"{ not valid json ",
+        headers={"Content-Type": "application/json"},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "invalid_json"

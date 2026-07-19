@@ -199,7 +199,7 @@ async def terminal_websocket(websocket: WebSocket) -> None:
     if len(sessions) >= MAX_TERMINAL_SESSIONS:
         await websocket.accept()
         await websocket.send_text(
-            json.dumps({"type": "error", "message": "Session limit reached"})
+            json.dumps({"type": "error", "code": "terminal_session_limit", "message": "Session limit reached"})
         )
         await websocket.close(code=4001)
         return
