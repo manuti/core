@@ -12,7 +12,7 @@ Usage: potatoctl <command> [args]
 Commands:
   doctor              Check Potato OS health (service, API, model)
   logs [api|llm|all]  Stream logs (default: api)
-  status              Show raw JSON status from the API
+  status              Show human-readable status summary
   restart             Restart the potato service
   bench [prompt] [n]  Timed generation + snapshot → Markdown benchmark row
 EOF
@@ -92,7 +92,101 @@ cmd_logs() {
 }
 
 cmd_status() {
-  curl -sf "$POTATO_URL/status" | python3 -m json.tool
+  python3 - "$POTATO_URL" <<'PYEOF'
+import json, sys, urllib.request
+
+base = sys.argv[1]
+
+def get_json(url, timeout=5):
+    req = urllib.request.Request(url)
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.load(r)
+
+try:
+    st = get_json(base + "/status")
+except Exception as e:
+    sys.exit(f"API unreachable at {base}: {e}")
+
+sysd = st.get("system") or {}
+model = st.get("model") or {}
+update = st.get("update") or {}
+runtime = (st.get("llama_runtime") or {}).get("current") or {}
+compat = st.get("compatibility") or {}
+
+state = st.get("state", "?")
+version = update.get("current_version", "?")
+device = sysd.get("pi_model_name", "?")
+kernel = sysd.get("kernel_release", "?")
+model_name = model.get("filename", "none")
+
+cpu = sysd.get("cpu_percent", 0)
+mem_pct = sysd.get("memory_percent", 0)
+mem_used = sysd.get("memory_used_bytes", 0)
+mem_total = sysd.get("memory_total_bytes", 0)
+temp = sysd.get("temperature_c")
+power = (sysd.get("power_estimate") or {}).get("adjusted_total_watts")
+throttle = bool(((sysd.get("throttling") or {}).get("any_current")))
+llama_rss = (sysd.get("llama_rss") or {}).get("rss_bytes", 0)
+
+def fmt_bytes(b):
+    for u in ("B", "KB", "MB", "GB"):
+        if b < 1024:
+            return f"{b:.1f}{u}"
+        b /= 1024
+    return f"{b:.1f}TB"
+
+print(f"Potato OS v{version}  —  {device}")
+print(f"{'='*50}")
+print(f"  State:      {state}")
+print(f"  Model:      {model_name}")
+print(f"  Runtime:    {runtime.get('family', '?')} ({runtime.get('version_summary', '?')})")
+print(f"  Kernel:     {kernel}")
+print()
+print("  System:")
+print(f"    CPU:      {cpu:.1f}%")
+print(f"    Memory:   {fmt_bytes(mem_used)} / {fmt_bytes(mem_total)} ({mem_pct:.1f}%)")
+print(f"    llama:    {fmt_bytes(llama_rss)} RSS")
+if isinstance(temp, (int, float)):
+    print(f"    Temp:     {temp:.1f} °C")
+if isinstance(power, (int, float)):
+    print(f"    Power:    {power:.2f} W")
+print(f"    Throttle: {'yes' if throttle else 'no'}")
+print()
+
+llama = st.get("llama_server") or {}
+if llama.get("running"):
+    print(f"  llama.cpp:  running — healthy: {llama.get('healthy', '?')}")
+else:
+    print(f"  llama.cpp:  not running")
+
+download = st.get("download") or {}
+if download.get("active"):
+    d = download
+    print(f"  Download:   {d.get('percent', 0):.0f}% — {fmt_bytes(d.get('bytes_downloaded', 0))} / {fmt_bytes(d.get('bytes_total', 0))}")
+else:
+    print(f"  Download:   idle")
+
+print()
+models = st.get("models") or []
+active = [m for m in models if m.get("is_active")]
+total = len(models)
+avail = sum(1 for m in models if m.get("status") == "ready")
+print(f"  Models:     {total} registered, {avail} ready")
+for m in active:
+    print(f"    active:   {m.get('filename', '?')}")
+
+print()
+available = update.get("available", False)
+if available:
+    print(f"  Update:     {update.get('latest_version', '?')} available!")
+else:
+    print(f"  Update:     up to date (v{version})")
+
+# llm server url
+url = llama.get("url", "")
+if url:
+    print(f"  API:        {base}")
+PYEOF
 }
 
 cmd_restart() {
