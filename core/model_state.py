@@ -17,13 +17,24 @@ import json
 import os
 import stat
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
 try:
-    from core.runtime_state import RuntimeConfig, _read_pi_device_model_name, classify_runtime_device
+    from core.runtime_state import (
+        RuntimeConfig,
+        _atomic_write_json,
+        _read_pi_device_model_name,
+        classify_runtime_device,
+    )
 except ModuleNotFoundError:
-    from runtime_state import RuntimeConfig, _read_pi_device_model_name, classify_runtime_device  # type: ignore[no-redef]
+    from runtime_state import (  # type: ignore[no-redef]
+        RuntimeConfig,
+        _atomic_write_json,
+        _read_pi_device_model_name,
+        classify_runtime_device,
+    )
 
 # ---------------------------------------------------------------------------
 # Re-exports from inferno (pure functions, no RuntimeConfig dependency)
@@ -148,8 +159,171 @@ def _discover_local_model_filenames(runtime: RuntimeConfig) -> list[str]:
     return _inferno_discover_local_model_filenames(_models_dir(runtime))
 
 
+# Entries discovered on disk (or uploaded) have no URL to download from again,
+# so a missing file means the user deleted it outside the app.
+_LOCAL_ONLY_SOURCE_TYPES = frozenset({"local_file", "upload"})
+
+
+def _prune_missing_local_models(
+    runtime: RuntimeConfig,
+    state: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Drop registry entries whose model file was deleted outside the app.
+
+    A missing file prunes the entry when it has no URL to download from again
+    (discovered on disk / uploaded) or when it was already marked ``ready``
+    (downloaded before, then removed). Registrations that were never downloaded
+    keep their entry so they stay downloadable/resumable.
+
+    Returns ``None`` when nothing had to be pruned.
+    """
+    models = state.get("models")
+    if not isinstance(models, list):
+        return None
+    kept: list[dict[str, Any]] = []
+    pruned = False
+    for item in models:
+        if not isinstance(item, dict):
+            continue
+        filename = str(item.get("filename") or "")
+        if not filename or _inferno_model_file_present(_models_dir(runtime), filename):
+            kept.append(item)
+            continue
+        source_url = str(item.get("source_url") or "").strip()
+        source_type = str(item.get("source_type") or "").strip().lower()
+        status = str(item.get("status") or "").strip().lower()
+        if (not source_url and source_type in _LOCAL_ONLY_SOURCE_TYPES) or status == "ready":
+            pruned = True
+            continue
+        kept.append(item)
+    if not pruned:
+        return None
+    next_state = dict(state)
+    next_state["models"] = kept
+    return next_state
+
+
 def ensure_models_state(runtime: RuntimeConfig) -> dict[str, Any]:
-    return _inferno_ensure_models_state(_store_config(runtime))
+    config = _store_config(runtime)
+    state = _inferno_ensure_models_state(config)
+    pruned = _prune_missing_local_models(runtime, state)
+    if pruned is None:
+        return state
+    return _inferno_save_models_state(config, pruned)
+
+
+# ---------------------------------------------------------------------------
+# Per-model load health (core-owned, survives restarts)
+# ---------------------------------------------------------------------------
+
+MODEL_HEALTH_FILENAME = "model_health.json"
+
+
+def _model_health_path(runtime: RuntimeConfig) -> Path:
+    return runtime.base_dir / "state" / MODEL_HEALTH_FILENAME
+
+
+def empty_model_health() -> dict[str, Any]:
+    return {
+        "attempted": False,
+        "ready_once": False,
+        "failed": False,
+        "last_error": None,
+        "last_attempt_at_unix": None,
+        "updated_at_unix": None,
+    }
+
+
+def _normalize_model_health(raw: Any) -> dict[str, Any]:
+    health = empty_model_health()
+    if not isinstance(raw, dict):
+        return health
+    health["attempted"] = bool(raw.get("attempted", False))
+    health["ready_once"] = bool(raw.get("ready_once", False))
+    health["failed"] = bool(raw.get("failed", False))
+    error = raw.get("last_error")
+    if isinstance(error, str) and error.strip():
+        health["last_error"] = error.strip()[:500]
+    for key in ("last_attempt_at_unix", "updated_at_unix"):
+        value = raw.get(key)
+        if isinstance(value, int) and not isinstance(value, bool) and value > 0:
+            health[key] = value
+    return health
+
+
+def read_model_health(runtime: RuntimeConfig) -> dict[str, dict[str, Any]]:
+    """Health records keyed by model id; empty when nothing was attempted yet."""
+    try:
+        raw = json.loads(_model_health_path(runtime).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(raw, dict) or not isinstance(raw.get("models"), dict):
+        return {}
+    return {
+        str(model_id): _normalize_model_health(value)
+        for model_id, value in raw["models"].items()
+        if isinstance(model_id, str)
+    }
+
+
+def _write_model_health(runtime: RuntimeConfig, entries: dict[str, dict[str, Any]]) -> None:
+    _atomic_write_json(_model_health_path(runtime), {"models": entries})
+
+
+def record_model_launch_attempt(runtime: RuntimeConfig, model_id: str) -> None:
+    if not model_id:
+        return
+    entries = read_model_health(runtime)
+    health = entries.get(model_id, empty_model_health())
+    now = int(time.time())
+    health.update({"attempted": True, "last_attempt_at_unix": now, "updated_at_unix": now})
+    entries[model_id] = health
+    _write_model_health(runtime, entries)
+
+
+def record_model_ready(runtime: RuntimeConfig, model_id: str) -> None:
+    if not model_id:
+        return
+    entries = read_model_health(runtime)
+    health = entries.get(model_id, empty_model_health())
+    if health["ready_once"] and not health["failed"] and health["last_error"] is None:
+        return
+    health.update(
+        {
+            "attempted": True,
+            "ready_once": True,
+            "failed": False,
+            "last_error": None,
+            "updated_at_unix": int(time.time()),
+        }
+    )
+    entries[model_id] = health
+    _write_model_health(runtime, entries)
+
+
+def record_model_failure(
+    runtime: RuntimeConfig,
+    model_id: str,
+    *,
+    error: str | None,
+    failed: bool,
+) -> None:
+    if not model_id:
+        return
+    entries = read_model_health(runtime)
+    health = entries.get(model_id, empty_model_health())
+    health.update(
+        {
+            "attempted": True,
+            # Sticky: a model that never loaded stays red across retries and
+            # restarts until it actually becomes ready.
+            "failed": bool(failed) or bool(health["failed"]),
+            "last_error": (str(error).strip()[:500] if error else None),
+            "updated_at_unix": int(time.time()),
+        }
+    )
+    entries[model_id] = health
+    _write_model_health(runtime, entries)
 
 
 def save_models_state(runtime: RuntimeConfig, state: dict[str, Any]) -> dict[str, Any]:

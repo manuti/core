@@ -14,9 +14,11 @@ try:
     from core.deps import get_runtime
     from core.model_state import model_format_for_filename, ensure_models_state, get_model_by_id
     from core.runtime_state import (
+        LLAMA_CTX_SIZE_VALID_VALUES,
         LLAMA_SERVER_RUNTIME_FAMILIES,
         RuntimeConfig,
         build_large_model_compatibility,
+        build_llama_ctx_status,
         build_llama_memory_loading_status,
         build_power_calibration_status,
         build_power_estimate_status,
@@ -28,19 +30,23 @@ try:
         normalize_allow_unsupported_large_models,
         normalize_llama_memory_loading_mode,
         write_llama_runtime_bundle_marker,
+        write_llama_ctx_settings,
         write_llama_runtime_settings,
         _append_power_calibration_sample,
         _fit_and_persist_power_calibration,
         _reset_power_calibration,
+        _safe_int,
         _safe_positive_float,
     )
 except ModuleNotFoundError:
     from deps import get_runtime  # type: ignore[no-redef]
     from model_state import model_format_for_filename, ensure_models_state, get_model_by_id  # type: ignore[no-redef]
     from runtime_state import (  # type: ignore[no-redef]
+        LLAMA_CTX_SIZE_VALID_VALUES,
         LLAMA_SERVER_RUNTIME_FAMILIES,
         RuntimeConfig,
         build_large_model_compatibility,
+        build_llama_ctx_status,
         build_llama_memory_loading_status,
         build_power_calibration_status,
         build_power_estimate_status,
@@ -52,10 +58,12 @@ except ModuleNotFoundError:
         normalize_allow_unsupported_large_models,
         normalize_llama_memory_loading_mode,
         write_llama_runtime_bundle_marker,
+        write_llama_ctx_settings,
         write_llama_runtime_settings,
         _append_power_calibration_sample,
         _fit_and_persist_power_calibration,
         _reset_power_calibration,
+        _safe_int,
         _safe_positive_float,
     )
 
@@ -222,6 +230,43 @@ async def set_llama_memory_loading_mode(
             "updated": True,
             "reason": "memory_loading_updated",
             "memory_loading": memory_loading,
+            "saved": saved,
+            "restarted": restarted,
+            "restart_reason": restart_reason,
+        },
+    )
+
+
+@router.post("/internal/llama-runtime/context")
+async def set_llama_ctx_size(
+    request: Request,
+    runtime_cfg: RuntimeConfig = Depends(get_runtime),
+) -> JSONResponse:
+    if not runtime_cfg.enable_orchestrator:
+        return JSONResponse(
+            status_code=409,
+            content={"updated": False, "reason": "orchestrator_disabled"},
+        )
+
+    payload = await request.json()
+    requested = payload.get("ctx_size", payload.get("ctx"))
+    if str(requested).strip().lower() == "auto":
+        saved = write_llama_ctx_settings(runtime_cfg, mode="auto")
+    else:
+        ctx_size = _safe_int(requested, 0)
+        if ctx_size not in LLAMA_CTX_SIZE_VALID_VALUES:
+            return JSONResponse(
+                status_code=400,
+                content={"updated": False, "reason": "invalid_ctx_size"},
+            )
+        saved = write_llama_ctx_settings(runtime_cfg, mode="fixed", ctx_size=ctx_size)
+    restarted, restart_reason = await _main.restart_managed_llama_process(request.app)
+    return JSONResponse(
+        status_code=200,
+        content={
+            "updated": True,
+            "reason": "ctx_size_updated",
+            "ctx": build_llama_ctx_status(runtime_cfg),
             "saved": saved,
             "restarted": restarted,
             "restart_reason": restart_reason,

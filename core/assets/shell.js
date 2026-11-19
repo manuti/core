@@ -161,7 +161,14 @@ import { registerPlatformShell } from "./platform-controls.js";
     function setStatus(statusPayload) {
       appState.latestStatus = statusPayload;
       const downloadText = formatSidebarStatusDetail(statusPayload);
-      const text = t("ui.statePrefix", { state: statusPayload.state, detail: downloadText });
+      let text = t("ui.statePrefix", { state: statusPayload.state, detail: downloadText });
+      if (statusPayload?.llama_server?.failed === true) {
+        const lastError = String(statusPayload?.llama_server?.last_error || "").trim();
+        const failures = Number(statusPayload?.llama_server?.consecutive_failures) || 0;
+        text = lastError
+          ? t("ui.stateLlamaFailed", { error: lastError })
+          : t("ui.stateLlamaFailedAttempts", { count: failures });
+      }
       const statusEl = document.getElementById("statusText");
       if (statusEl) statusEl.textContent = text;
       renderStatusActions(statusPayload);

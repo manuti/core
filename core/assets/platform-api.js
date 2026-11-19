@@ -37,6 +37,38 @@ export async function setMemoryLoadingMode(mode) {
   }
 }
 
+export async function setLlamaCtxSize(ctxSize) {
+  try {
+    const { res, body } = await postJson("/internal/llama-runtime/context", { ctx_size: ctxSize });
+    if (!res.ok) {
+      return { ok: false, error: body?.reason || String(res.status) };
+    }
+    return {
+      ok: true,
+      ctx: body?.ctx || null,
+      restartReason: body?.restart_reason || "requested",
+    };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
+export async function restartLlama() {
+  try {
+    const { res, body } = await postJson("/internal/restart-llama", {});
+    if (!res.ok) {
+      return { ok: false, error: body?.reason || String(res.status) };
+    }
+    return {
+      ok: true,
+      restarted: body?.restarted === true,
+      reason: body?.reason || null,
+    };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
 export async function resetRuntime() {
   try {
     const res = await fetch("/internal/reset-runtime", {

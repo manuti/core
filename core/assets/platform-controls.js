@@ -25,7 +25,7 @@ import { appState, RUNTIME_RECONNECT_INTERVAL_MS, RUNTIME_RECONNECT_TIMEOUT_MS, 
 import { formatBytes } from "./utils.js";
 import { t, tReason } from "./i18n.js";
 import { isLocalModelConnected, findResumableFailedModel, renderDownloadPrompt } from "./status.js";
-import { setModelUploadStatus, setLlamaRuntimeSwitchStatus, setLlamaRuntimeSwitchButtonState, setLlamaMemoryLoadingStatus, setLlamaMemoryLoadingButtonState, setLargeModelOverrideStatus, setLargeModelOverrideButtonState, setPowerCalibrationStatus, setPowerCalibrationButtonsState } from "./runtime-ui.js";
+import { setModelUploadStatus, setLlamaRuntimeSwitchStatus, setLlamaRuntimeSwitchButtonState, setLlamaMemoryLoadingStatus, setLlamaMemoryLoadingButtonState, setLlamaCtxStatus, setLlamaCtxButtonState, setLargeModelOverrideStatus, setLargeModelOverrideButtonState, setPowerCalibrationStatus, setPowerCalibrationButtonsState } from "./runtime-ui.js";
 import { setUpdateCheckInFlight, setUpdateStartInFlight, isUpdateExecutionActive, openChangelogModal } from "./update-ui.js";
 import { setModelUrlStatus, formatModelUrlStatus, resolveSelectedSettingsModel, selectedModelHasUnsavedChanges, blockModelSelectionChange, renderSettingsWorkspace } from "./settings-ui.js";
 import { showPlatformNotice } from "./platform-notify.js";
@@ -107,6 +107,57 @@ export async function applyLlamaMemoryLoadingMode() {
   } finally {
     appState.llamaMemoryLoadingApplyInFlight = false;
     setLlamaMemoryLoadingButtonState(false);
+  }
+}
+
+// ── Retry llama-server after repeated failures ─────────────────────
+
+export async function retryLlamaServer() {
+  if (appState.llamaRetryInFlight) return;
+  appState.llamaRetryInFlight = true;
+  try {
+    showPlatformNotice(t("pc.retryingLlama"), { level: "info" });
+    const result = await platformApi.restartLlama();
+    if (!result.ok) {
+      showPlatformNotice(t("pc.couldNotRetryLlama", { error: tReason(result.error) }), { level: "error" });
+      return;
+    }
+    showPlatformNotice(t("pc.retriedLlama", { reason: result.reason || "requested" }), { level: "success" });
+  } finally {
+    appState.llamaRetryInFlight = false;
+    await _shell.pollStatus();
+  }
+}
+
+// ── Context size ───────────────────────────────────────────────────
+
+export async function applyLlamaCtxSize() {
+  if (appState.llamaCtxApplyInFlight) return;
+  const select = document.getElementById("llamaCtxSizeSelect");
+  const value = String(select?.value || "auto").trim() || "auto";
+  const label = select?.selectedOptions?.[0]?.textContent || value;
+  const confirmed = window.confirm(
+    t("pc.confirmApplyCtx", { label })
+  );
+  if (!confirmed) return;
+
+  appState.llamaCtxApplyInFlight = true;
+  setLlamaCtxButtonState(true);
+  setLlamaCtxStatus(t("pc.applyingCtx", { label }));
+  try {
+    const result = await platformApi.setLlamaCtxSize(value);
+    if (!result.ok) {
+      showPlatformNotice(t("pc.couldNotUpdateCtx", { error: tReason(result.error) }), { level: "error" });
+      return;
+    }
+    showPlatformNotice(
+      t("pc.appliedCtx", { value: result.ctx?.ctx_size ?? value, reason: result.restartReason }),
+      { level: "success" },
+    );
+    await _shell.pollStatus();
+  } finally {
+    appState.llamaCtxApplyInFlight = false;
+    setLlamaCtxButtonState(false);
   }
 }
 

@@ -58,6 +58,15 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
       const throttleDetail = document.getElementById("runtimeDetailThrottleValue");
       const throttleHistoryDetail = document.getElementById("runtimeDetailThrottleHistoryValue");
       const updatedDetail = document.getElementById("runtimeDetailUpdatedValue");
+      const llamaRuntimeDetail = document.getElementById("runtimeDetailLlamaRuntimeValue");
+      if (llamaRuntimeDetail) {
+        const currentRuntime = statusPayload?.llama_runtime?.current || {};
+        const runtimeFamily = String(currentRuntime.family || currentRuntime.source_bundle_name || "").trim();
+        const runtimeCommit = String(currentRuntime.llama_cpp_commit || "").trim().slice(0, 8);
+        llamaRuntimeDetail.textContent = runtimeFamily
+          ? (runtimeCommit ? `${runtimeFamily} · ${runtimeCommit}` : runtimeFamily)
+          : "--";
+      }
 
       if (!available) {
         compact.textContent = t("ru.compactPlaceholder");
@@ -375,6 +384,19 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
       btn.textContent = inFlight ? t("ru.applying") : t("adv.applyMemory");
     }
 
+    export function setLlamaCtxStatus(message) {
+      const el = document.getElementById("llamaCtxStatus");
+      if (!el) return;
+      el.textContent = String(message || t("ru.currentCtxVal", { value: "--" }));
+    }
+
+    export function setLlamaCtxButtonState(inFlight) {
+      const btn = document.getElementById("applyLlamaCtxBtn");
+      if (!btn) return;
+      btn.disabled = Boolean(inFlight);
+      btn.textContent = inFlight ? t("ru.applying") : t("adv.applyCtx");
+    }
+
     export function setLargeModelOverrideButtonState(inFlight) {
       const btn = document.getElementById("applyLargeModelOverrideBtn");
       if (btn) {
@@ -473,6 +495,19 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
         setLlamaMemoryLoadingStatus(t("adv.memoryStatus"));
       }
 
+      const ctxSelect = document.getElementById("llamaCtxSizeSelect");
+      const ctxPayload = runtimePayload?.ctx || {};
+      if (ctxSelect) {
+        const ctxMode = String(ctxPayload?.mode || "auto");
+        const ctxValue = ctxMode === "fixed" ? String(ctxPayload?.ctx_size || "auto") : "auto";
+        ctxSelect.value = ["auto", "4096", "8192", "16384"].includes(ctxValue) ? ctxValue : "auto";
+      }
+      if (ctxPayload?.ctx_size) {
+        setLlamaCtxStatus(t("ru.currentCtxVal", { value: ctxPayload.ctx_size }));
+      } else {
+        setLlamaCtxStatus(t("ru.currentCtxVal", { value: "--" }));
+      }
+
       const largeModelOverrideToggle = document.getElementById("largeModelOverrideEnabled");
       const largeModelOverride = runtimePayload?.large_model_override || {};
       const overrideEnabled = largeModelOverride?.enabled === true || statusPayload?.compatibility?.override_enabled === true;
@@ -521,6 +556,7 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
 
       setLlamaRuntimeSwitchButtonState(appState.llamaRuntimeSwitchInFlight || switchState?.active === true);
       setLlamaMemoryLoadingButtonState(appState.llamaMemoryLoadingApplyInFlight);
+      setLlamaCtxButtonState(appState.llamaCtxApplyInFlight);
       setLargeModelOverrideButtonState(appState.largeModelOverrideApplyInFlight);
       setPowerCalibrationButtonsState(appState.powerCalibrationActionInFlight);
     }

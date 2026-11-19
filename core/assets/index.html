@@ -26,6 +26,7 @@
           <div id="statusText" class="status-card">Checking status...</div>
           <div id="statusActions" class="status-actions" hidden>
             <button id="statusResumeDownloadBtn" class="ghost-btn" type="button" data-i18n="status.resume">Resume</button>
+            <button id="statusRestartLlamaBtn" class="ghost-btn" type="button" data-i18n="status.retryLlama">Retry</button>
           </div>
         </div>
         <div id="downloadPrompt" class="download-prompt" hidden>
@@ -90,6 +91,7 @@
               <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.piModel">Pi model</span><span id="runtimeDetailPiModelValue" class="runtime-detail-value">--</span></div>
               <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.os">OS</span><span id="runtimeDetailOsValue" class="runtime-detail-value">--</span></div>
               <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.kernel">Kernel</span><span id="runtimeDetailKernelValue" class="runtime-detail-value">--</span></div>
+              <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.llamaRuntime">Llama runtime</span><span id="runtimeDetailLlamaRuntimeValue" class="runtime-detail-value">--</span></div>
               <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.bootloader">Bootloader</span><span id="runtimeDetailBootloaderValue" class="runtime-detail-value">--</span></div>
               <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.firmware">Firmware</span><span id="runtimeDetailFirmwareValue" class="runtime-detail-value">--</span></div>
               <div class="runtime-detail-row"><span class="runtime-detail-label" data-i18n="rt.updated">Updated</span><span id="runtimeDetailUpdatedValue" class="runtime-detail-value">--</span></div>
@@ -317,6 +319,19 @@
             <button id="applyLlamaMemoryLoadingBtn" class="ghost-btn" type="button" data-i18n="adv.applyMemory">Apply memory loading + restart</button>
           </div>
           <div id="llamaMemoryLoadingStatus" class="runtime-compact">Current memory loading: unknown</div>
+          <h4 class="settings-subsection-title" data-i18n="adv.ctxSize">Context size</h4>
+          <label class="full"><span data-i18n="adv.ctxSizeHint">Lower context frees RAM for the model</span>
+            <select id="llamaCtxSizeSelect">
+              <option value="auto" data-i18n="adv.ctxAuto">Automatic (by model size)</option>
+              <option value="4096">4096</option>
+              <option value="8192">8192</option>
+              <option value="16384">16384</option>
+            </select>
+          </label>
+          <div class="settings-action-row full">
+            <button id="applyLlamaCtxBtn" class="ghost-btn" type="button" data-i18n="adv.applyCtx">Apply context size + restart</button>
+          </div>
+          <div id="llamaCtxStatus" class="runtime-compact">Context: unknown</div>
           <div class="full">
             <h4 class="settings-subsection-title" data-i18n="adv.llamaRuntime">Llama Runtime</h4>
             <div id="llamaRuntimeCurrent" class="runtime-compact">Current runtime: unknown</div>
