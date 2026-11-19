@@ -10,6 +10,8 @@ Group=potato
 WorkingDirectory=/opt/potato
 Environment=POTATO_BASE_DIR=/opt/potato
 ExecStartPre=+/bin/sh -c 'echo bfq > /sys/block/mmcblk0/queue/scheduler 2>/dev/null || true'
+ExecStartPre=+/bin/sh -c 'for c in /sys/devices/system/cpu/cpu[0-9]*/cpufreq/scaling_governor; do echo performance > "$c" 2>/dev/null || true; done'
+ExecStopPost=+/bin/sh -c 'for c in /sys/devices/system/cpu/cpu[0-9]*/cpufreq/scaling_governor; do echo ondemand > "$c" 2>/dev/null || true; done'
 ExecStart=/opt/potato/bin/run.sh
 Restart=always
 RestartSec=2

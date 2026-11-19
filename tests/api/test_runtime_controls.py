@@ -141,6 +141,55 @@ def test_set_llama_memory_loading_mode_persists_and_restarts(runtime, monkeypatc
     assert status_body["llama_runtime"]["memory_loading"]["no_mmap_env"] == "1"
 
 
+def test_set_llama_ctx_size_persists_and_restarts(runtime, monkeypatch):
+    runtime.enable_orchestrator = True
+    app = create_app(runtime=runtime, enable_orchestrator=True)
+    app.dependency_overrides[get_runtime] = lambda: runtime
+
+    async def _fake_restart(_app):
+        return True, "terminated_running_process"
+
+    monkeypatch.setattr("core.main.restart_managed_llama_process", _fake_restart)
+    monkeypatch.delenv("POTATO_CTX_SIZE", raising=False)
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/internal/llama-runtime/context",
+            json={"ctx_size": "8192"},
+        )
+        persisted = json.loads((runtime.base_dir / "state" / "llama_ctx.json").read_text(encoding="utf-8"))
+        invalid = client.post(
+            "/internal/llama-runtime/context",
+            json={"ctx_size": "1234"},
+        )
+        status = client.get("/status")
+        reset = client.post(
+            "/internal/llama-runtime/context",
+            json={"ctx_size": "auto"},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["updated"] is True
+    assert body["reason"] == "ctx_size_updated"
+    assert body["restarted"] is True
+    assert body["ctx"]["ctx_size"] == 8192
+    assert body["ctx"]["source"] == "override"
+    assert body["ctx"]["mode"] == "fixed"
+
+    assert persisted["mode"] == "fixed"
+    assert persisted["ctx_size"] == 8192
+
+    assert invalid.status_code == 400
+    assert invalid.json()["reason"] == "invalid_ctx_size"
+
+    assert status.json()["llama_runtime"]["ctx"]["ctx_size"] == 8192
+
+    assert reset.status_code == 200
+    assert reset.json()["ctx"]["mode"] == "auto"
+    assert reset.json()["ctx"]["source"] == "default"
+
+
 def test_set_large_model_override_persists_without_restart(runtime, monkeypatch):
     runtime.enable_orchestrator = True
     app = create_app(runtime=runtime, enable_orchestrator=True)

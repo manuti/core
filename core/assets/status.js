@@ -154,15 +154,25 @@ import { t } from "./i18n.js";
     export function renderStatusActions(statusPayload) {
       const actions = document.getElementById("statusActions");
       const resumeBtn = document.getElementById("statusResumeDownloadBtn");
-      if (!actions || !resumeBtn) return;
+      const restartBtn = document.getElementById("statusRestartLlamaBtn");
+      if (!actions) return;
       const hasModel = statusPayload?.model_present === true;
       const state = String(statusPayload?.state || "").toUpperCase();
       const downloadError = String(statusPayload?.download?.error || "");
       const resumableFailedModel = findResumableFailedModel(statusPayload);
       const showResume = hasModel && state === "READY" && downloadError === "download_failed" && !!resumableFailedModel;
-      actions.hidden = !showResume;
-      resumeBtn.disabled = appState.downloadStartInFlight;
-      resumeBtn.textContent = appState.downloadStartInFlight ? t("dl.resuming") : t("status.resume");
+      const showRestart = statusPayload?.llama_server?.failed === true;
+      if (resumeBtn) {
+        resumeBtn.hidden = !showResume;
+        resumeBtn.disabled = appState.downloadStartInFlight;
+        resumeBtn.textContent = appState.downloadStartInFlight ? t("dl.resuming") : t("status.resume");
+      }
+      if (restartBtn) {
+        restartBtn.hidden = !showRestart;
+        restartBtn.disabled = appState.llamaRetryInFlight === true;
+        restartBtn.textContent = appState.llamaRetryInFlight ? t("ru.applying") : t("status.retryLlama");
+      }
+      actions.hidden = !(showResume || showRestart);
     }
 
     export function renderCompatibilityWarnings(statusPayload) {

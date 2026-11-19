@@ -1139,3 +1139,52 @@ test("litert-backed text-only model shows Text only chip and disables image uplo
   await expect(page.locator("#attachImageBtn")).toBeDisabled();
 });
 
+test("advanced settings show and apply the llama context size", async ({ page }) => {
+  const posted = [];
+  await page.route("**/status", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(makeStatusPayload({
+        llama_runtime: {
+          current: { family: "ik_llama", llama_cpp_commit: "abc12345", profile: "pi5-opt", has_server_binary: true, runtime_type: "llama_server" },
+          available_runtimes: [{ family: "ik_llama", commit: "abc12345", is_active: true, compatible: true }],
+          switch: { active: false, target_family: null, error: null },
+          memory_loading: { mode: "auto", label: "Automatic", no_mmap_env: "0" },
+          large_model_override: { enabled: false },
+          ctx: { ctx_size: 8192, source: "auto", mode: "auto" },
+        },
+      })),
+    });
+  });
+  await page.route("**/internal/llama-runtime/context", async (route) => {
+    posted.push(route.request().postDataJSON());
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        updated: true,
+        reason: "ctx_size_updated",
+        ctx: { ctx_size: 16384, source: "override", mode: "fixed" },
+        restarted: true,
+        restart_reason: "terminated_running_process",
+      }),
+    });
+  });
+
+  await page.goto("/");
+  await waitForStatusApplied(page);
+  await openSettingsModal(page);
+  await openAdvancedSettingsModal(page);
+
+  await expect(page.locator("#llamaCtxSizeSelect")).toHaveValue("auto");
+  await expect(page.locator("#llamaCtxStatus")).toContainText("8192");
+
+  page.on("dialog", (dialog) => dialog.accept());
+  await page.locator("#llamaCtxSizeSelect").selectOption("16384");
+  await page.locator("#applyLlamaCtxBtn").click();
+
+  await expect.poll(() => posted.length).toBe(1);
+  expect(posted[0]).toEqual({ ctx_size: "16384" });
+});
+

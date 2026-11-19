@@ -1549,3 +1549,86 @@ def test_compute_model_loading_progress_auto_mode_uses_file_when_larger():
     assert result["active"] is True
     assert result["progress_percent"] == 75
     assert result["resident_bytes"] == 1_500_000_000
+
+
+# -- llama ctx size resolution ----------------------------------------------
+
+
+def _sparse_model(path, size_bytes: int):
+    with path.open("wb") as handle:
+        handle.seek(size_bytes - 1)
+        handle.write(b"x")
+    return path
+
+
+def test_resolve_llama_ctx_size_prefers_persisted_override(tmp_path, monkeypatch):
+    monkeypatch.setenv("POTATO_CTX_SIZE", "12288")
+    model = _sparse_model(tmp_path / "big.gguf", 6 * 1024**3)
+
+    assert runtime_state.resolve_llama_ctx_size(
+        device_class="pi5-8gb",
+        model_path=model,
+        settings={"mode": "fixed", "ctx_size": 4096},
+    ) == (4096, "override")
+
+
+def test_resolve_llama_ctx_size_honors_env(tmp_path, monkeypatch):
+    monkeypatch.setenv("POTATO_CTX_SIZE", "12288")
+    model = _sparse_model(tmp_path / "big.gguf", 6 * 1024**3)
+
+    assert runtime_state.resolve_llama_ctx_size(
+        device_class="pi5-8gb",
+        model_path=model,
+        settings={"mode": "auto"},
+    ) == (12288, "env")
+
+
+def test_resolve_llama_ctx_size_lowers_large_model_on_pi5_8gb(tmp_path, monkeypatch):
+    monkeypatch.delenv("POTATO_CTX_SIZE", raising=False)
+    model = _sparse_model(tmp_path / "big.gguf", 6 * 1024**3)
+
+    assert runtime_state.resolve_llama_ctx_size(
+        device_class="pi5-8gb",
+        model_path=model,
+        settings={"mode": "auto"},
+    ) == (8192, "auto")
+
+
+def test_resolve_llama_ctx_size_keeps_default_for_small_model(tmp_path, monkeypatch):
+    monkeypatch.delenv("POTATO_CTX_SIZE", raising=False)
+    model = _sparse_model(tmp_path / "small.gguf", 1300 * 1024**2)
+
+    assert runtime_state.resolve_llama_ctx_size(
+        device_class="pi5-8gb",
+        model_path=model,
+        settings={"mode": "auto"},
+    ) == (16384, "default")
+
+
+def test_resolve_llama_ctx_size_defaults_when_model_missing(tmp_path, monkeypatch):
+    monkeypatch.delenv("POTATO_CTX_SIZE", raising=False)
+
+    assert runtime_state.resolve_llama_ctx_size(
+        device_class="pi5-8gb",
+        model_path=tmp_path / "absent.gguf",
+        settings=None,
+    ) == (16384, "default")
+
+
+def test_llama_ctx_settings_roundtrip(runtime):
+    assert runtime_state.read_llama_ctx_settings(runtime) == {"mode": "auto"}
+
+    runtime_state.write_llama_ctx_settings(runtime, mode="fixed", ctx_size=8192)
+    assert runtime_state.read_llama_ctx_settings(runtime) == {"mode": "fixed", "ctx_size": 8192}
+
+    runtime_state.write_llama_ctx_settings(runtime, mode="auto")
+    assert runtime_state.read_llama_ctx_settings(runtime) == {"mode": "auto"}
+
+
+def test_read_llama_ctx_settings_ignores_invalid_values(runtime):
+    path = runtime.base_dir / "state" / "llama_ctx.json"
+    path.write_text(json.dumps({"mode": "fixed", "ctx_size": 123}), encoding="utf-8")
+    assert runtime_state.read_llama_ctx_settings(runtime) == {"mode": "auto"}
+
+    path.write_text("not json", encoding="utf-8")
+    assert runtime_state.read_llama_ctx_settings(runtime) == {"mode": "auto"}

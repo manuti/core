@@ -307,6 +307,93 @@ def classify_runtime_device(
 
 
 # ---------------------------------------------------------------------------
+# llama-server context sizing (Potato-owned settings file)
+# ---------------------------------------------------------------------------
+
+LLAMA_CTX_SIZE_DEFAULT = 16384
+LLAMA_CTX_SIZE_PI5_8GB_LARGE_MODEL = 8192
+LLAMA_CTX_SIZE_VALID_VALUES = (4096, 8192, 16384)
+# At/above this size an 8 GB board can't afford the default 16k KV cache.
+LLAMA_CTX_LARGE_MODEL_THRESHOLD_BYTES = 5 * 1024 * 1024 * 1024
+
+
+def _llama_ctx_settings_path(runtime: RuntimeConfig) -> Path:
+    return runtime.base_dir / "state" / "llama_ctx.json"
+
+
+def read_llama_ctx_settings(runtime: RuntimeConfig) -> dict[str, Any]:
+    """Read the persisted ctx-size choice; anything malformed means auto."""
+    try:
+        raw = json.loads(_llama_ctx_settings_path(runtime).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"mode": "auto"}
+    if not isinstance(raw, dict) or raw.get("mode") != "fixed":
+        return {"mode": "auto"}
+    ctx_size = _safe_int(raw.get("ctx_size"), 0)
+    if ctx_size not in LLAMA_CTX_SIZE_VALID_VALUES:
+        return {"mode": "auto"}
+    return {"mode": "fixed", "ctx_size": ctx_size}
+
+
+def write_llama_ctx_settings(
+    runtime: RuntimeConfig,
+    *,
+    mode: str,
+    ctx_size: int | None = None,
+) -> dict[str, Any]:
+    normalized_mode = "fixed" if str(mode or "").strip().lower() == "fixed" else "auto"
+    payload: dict[str, Any] = {"mode": normalized_mode}
+    if normalized_mode == "fixed":
+        value = _safe_int(ctx_size, 0)
+        if value not in LLAMA_CTX_SIZE_VALID_VALUES:
+            raise ValueError(f"unsupported llama ctx_size: {ctx_size!r}")
+        payload["ctx_size"] = value
+    payload["updated_at_unix"] = int(time.time())
+    _atomic_write_json(_llama_ctx_settings_path(runtime), payload)
+    return payload
+
+
+def resolve_llama_ctx_size(
+    *,
+    device_class: str,
+    model_path: Path,
+    settings: dict[str, Any] | None = None,
+) -> tuple[int, str]:
+    """Pick llama-server's ``--ctx-size``.
+
+    Precedence: manual override > ``POTATO_CTX_SIZE`` env > pi5-8gb large-model
+    auto rule > built-in default. Returns ``(ctx_size, source)``.
+    """
+    if isinstance(settings, dict) and settings.get("mode") == "fixed":
+        ctx_size = _safe_int(settings.get("ctx_size"), 0)
+        if ctx_size in LLAMA_CTX_SIZE_VALID_VALUES:
+            return ctx_size, "override"
+    env_raw = os.environ.get("POTATO_CTX_SIZE", "").strip()
+    if env_raw:
+        env_ctx = _safe_int(env_raw, 0)
+        if env_ctx > 0:
+            return env_ctx, "env"
+    if device_class == "pi5-8gb":
+        try:
+            size_bytes = int(model_path.stat().st_size)
+        except OSError:
+            size_bytes = 0
+        if size_bytes >= LLAMA_CTX_LARGE_MODEL_THRESHOLD_BYTES:
+            return LLAMA_CTX_SIZE_PI5_8GB_LARGE_MODEL, "auto"
+    return LLAMA_CTX_SIZE_DEFAULT, "default"
+
+
+def build_llama_ctx_status(runtime: RuntimeConfig) -> dict[str, Any]:
+    settings = read_llama_ctx_settings(runtime)
+    ctx_size, source = resolve_llama_ctx_size(
+        device_class=classify_runtime_device(),
+        model_path=runtime.model_path,
+        settings=settings,
+    )
+    return {"ctx_size": ctx_size, "source": source, "mode": settings["mode"]}
+
+
+# ---------------------------------------------------------------------------
 # Storage helpers (stays in Potato layer)
 # ---------------------------------------------------------------------------
 
@@ -741,11 +828,13 @@ def build_llama_runtime_status(
             }
 
     store = _store_config(runtime)
-    return _inferno.build_llama_runtime_status(
+    status = _inferno.build_llama_runtime_status(
         store,
         active_model_filename=active_model_filename,
         switch_snapshot=switch_snapshot,
     )
+    status["ctx"] = build_llama_ctx_status(runtime)
+    return status
 
 
 # ---------------------------------------------------------------------------

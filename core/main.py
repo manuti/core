@@ -94,6 +94,7 @@ try:
         MODEL_UPLOAD_PI_16GB_MEMORY_THRESHOLD_BYTES,
         POWER_CALIBRATION_DEFAULT_A,
         POWER_CALIBRATION_DEFAULT_B,
+        read_llama_ctx_settings,
         read_llama_runtime_bundle_marker,
         RuntimeConfig,
         _MODEL_LOADING_INACTIVE,
@@ -132,6 +133,7 @@ try:
         read_download_progress,
         read_llama_runtime_settings,
         request_llama_slot_cancel,
+        resolve_llama_ctx_size,
         system_metrics_loop,
         write_llama_runtime_bundle_marker,
         write_llama_runtime_settings,
@@ -221,6 +223,7 @@ except ModuleNotFoundError:
         MODEL_UPLOAD_PI_16GB_MEMORY_THRESHOLD_BYTES,
         POWER_CALIBRATION_DEFAULT_A,
         POWER_CALIBRATION_DEFAULT_B,
+        read_llama_ctx_settings,
         read_llama_runtime_bundle_marker,
         RuntimeConfig,
         _MODEL_LOADING_INACTIVE,
@@ -259,6 +262,7 @@ except ModuleNotFoundError:
         read_download_progress,
         read_llama_runtime_settings,
         request_llama_slot_cancel,
+        resolve_llama_ctx_size,
         system_metrics_loop,
         write_llama_runtime_bundle_marker,
         write_llama_runtime_settings,
@@ -439,6 +443,40 @@ async def _noop_stray_kill() -> int:
     return 0
 
 
+LLAMA_SERVER_LOG_MAX_BYTES = 4096
+LLAMA_SERVER_LOG_FILENAME = "llama-server.log"
+
+
+def _llama_server_log_path(runtime: RuntimeConfig) -> Path:
+    return runtime.base_dir / "state" / LLAMA_SERVER_LOG_FILENAME
+
+
+def _llama_last_log_line(runtime: RuntimeConfig) -> str | None:
+    """Last non-empty stderr line of the current llama-server launch."""
+    path = _llama_server_log_path(runtime)
+    try:
+        with path.open("rb") as handle:
+            handle.seek(0, os.SEEK_END)
+            size = handle.tell()
+            handle.seek(max(0, size - LLAMA_SERVER_LOG_MAX_BYTES))
+            tail = handle.read().decode("utf-8", errors="replace")
+    except OSError:
+        return None
+    for line in reversed(tail.splitlines()):
+        text = line.strip()
+        if text:
+            return text[:200]
+    return None
+
+
+def _llama_exit_reason(runtime: RuntimeConfig, returncode: int) -> str:
+    """Human-readable crash reason: exit code plus llama-server's last words."""
+    line = _llama_last_log_line(runtime)
+    if line:
+        return f"exit {returncode}: {line}"
+    return f"exit {returncode}"
+
+
 def _resolve_backend_active(
     runtime: RuntimeConfig,
     model_present: bool,
@@ -563,8 +601,13 @@ def _build_status_fs(
     llama_transport_healthy = False
     llama_ready = False
     needs_health_check = False
+    readiness_state: dict[str, Any] | None = None
+    llama_consecutive_failures = 0
+    if app is not None:
+        llama_consecutive_failures = _safe_int(
+            getattr(app.state, "llama_consecutive_failures", 0), 0
+        )
     if has_model:
-        readiness_state: dict[str, Any] | None = None
         if app is not None and runtime.enable_orchestrator:
             readiness_state = get_llama_readiness_state(app, active_model_path=active_model_path)
             proc = getattr(app.state, "llama_process", None)
@@ -753,6 +796,13 @@ def _build_status_fs(
             "ready": llama_ready,
             "transport_healthy": llama_transport_healthy,
             "url": runtime.llama_base_url,
+            "last_error": (
+                readiness_state.get("last_error")
+                if isinstance(readiness_state, dict)
+                else None
+            ),
+            "consecutive_failures": llama_consecutive_failures,
+            "failed": llama_consecutive_failures >= LLAMA_MAX_CONSECUTIVE_FAILURES,
         },
         "projector_download": _detect_projector_download(runtime),
         "backend": {
@@ -1005,12 +1055,17 @@ async def _build_llama_launch_args(runtime: RuntimeConfig) -> list[str] | None:
         {"no_mmap_env": no_mmap_env}, active_filename, installed_family,
         device_class=device_class, bundle_marker=marker,
     )
+    ctx_size, _ctx_source = resolve_llama_ctx_size(
+        device_class=device_class,
+        model_path=runtime.model_path,
+        settings=read_llama_ctx_settings(runtime),
+    )
     return build_llama_server_args(
         llama_server_bin=runtime.base_dir / "llama" / "bin" / "llama-server",
         model_path=runtime.model_path,
         host=os.environ.get("POTATO_LLAMA_HOST", "0.0.0.0"),
         port=runtime.llama_port,
-        ctx_size=int(os.environ.get("POTATO_CTX_SIZE", "16384")),
+        ctx_size=ctx_size,
         parallel=int(os.environ.get("POTATO_LLAMA_PARALLEL", "1")),
         cache_ram_mib=int(os.environ.get("POTATO_LLAMA_CACHE_RAM_MIB", "1024")),
         slot_save_path=runtime.base_dir / "state" / "llama-slots",
@@ -1696,9 +1751,22 @@ async def orchestrator_loop(app: FastAPI, runtime: RuntimeConfig) -> None:
                 if launch_args is None:
                     logger.warning("Skipping llama-server launch — required projector unavailable (will retry)")
                     return None
-                return await asyncio.create_subprocess_exec(
-                    str(runtime.start_llama_script), *launch_args, env=_runtime_env(runtime),
-                )
+                log_handle = None
+                try:
+                    log_path = _llama_server_log_path(runtime)
+                    log_path.parent.mkdir(parents=True, exist_ok=True)
+                    log_handle = log_path.open("wb")
+                except OSError:
+                    log_handle = None
+                try:
+                    return await asyncio.create_subprocess_exec(
+                        str(runtime.start_llama_script), *launch_args,
+                        env=_runtime_env(runtime),
+                        **({"stderr": log_handle} if log_handle is not None else {}),
+                    )
+                finally:
+                    if log_handle is not None:
+                        log_handle.close()
 
             async def _launch_litert() -> Any:
                 await terminate_stray_litert_processes(runtime)
@@ -1710,6 +1778,7 @@ async def orchestrator_loop(app: FastAPI, runtime: RuntimeConfig) -> None:
             if installed_family == "litert" and runtime.start_litert_script and runtime.start_litert_script.exists():
                 launch_litert = _launch_litert
 
+            previous_llama_process = app.state.llama_process
             tick_result = await _orchestrator.run_inference_tick(
                 process=app.state.llama_process,
                 consecutive_failures=app.state.llama_consecutive_failures,
@@ -1728,6 +1797,16 @@ async def orchestrator_loop(app: FastAPI, runtime: RuntimeConfig) -> None:
             app.state._llama_failure_model = tick_result.failure_model_key
             app.state._llama_failure_runtime = tick_result.failure_runtime_key
             app.state.llama_readiness_state = tick_result.readiness
+            if (
+                previous_llama_process is not None
+                and previous_llama_process.returncode not in (None, 0)
+                and isinstance(app.state.llama_readiness_state, dict)
+            ):
+                # Surface why the last launch died (exit code + llama-server's
+                # own stderr), not just the generic "restart_requested" reason.
+                app.state.llama_readiness_state["last_error"] = _llama_exit_reason(
+                    runtime, int(previous_llama_process.returncode)
+                )
 
             # First-boot auto-update: check once, apply if available, then never again.
             # Gated on llama READY — won't fire until the model is loaded and healthy.

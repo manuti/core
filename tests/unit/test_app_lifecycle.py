@@ -337,3 +337,21 @@ def test_crash_loop_counter_stops_restarts_for_fast_crashing_process(
     assert start_count == main.LLAMA_MAX_CONSECUTIVE_FAILURES, (
         f"Expected {main.LLAMA_MAX_CONSECUTIVE_FAILURES} start attempts, got {start_count}"
     )
+
+
+def test_llama_exit_reason_reports_exit_code_and_last_stderr_line(runtime: main.RuntimeConfig):
+    log_path = main._llama_server_log_path(runtime)
+    log_path.write_text(
+        "ggml_backend_cpu_init\n"
+        "GGML_ASSERT(ggml_can_repeat(b, a)) failed\n"
+        "\n",
+        encoding="utf-8",
+    )
+
+    reason = main._llama_exit_reason(runtime, -6)
+
+    assert reason == "exit -6: GGML_ASSERT(ggml_can_repeat(b, a)) failed"
+
+
+def test_llama_exit_reason_falls_back_to_exit_code(runtime: main.RuntimeConfig):
+    assert main._llama_exit_reason(runtime, 1) == "exit 1"

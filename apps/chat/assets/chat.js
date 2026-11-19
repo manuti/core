@@ -8,7 +8,7 @@ import { registerOpenEditMessageModal, getMessagesBox, isMessagesPinned, setMess
 import { registerImageUiCallbacks, clearPendingImage, handleImageSelected, openImagePicker } from "./image-handler.js";
 import { registerSettingsChatCallbacks, activeRuntimeVisionCapability, showTextOnlyImageBlockedState, bindSettingsModal } from "/assets/settings-ui.js";
 import { registerChatEngineCallbacks, setSendEnabled, setComposerActivity, setComposerStatusChip, hideComposerStatusChip, setCancelEnabled, sendChat, stopGeneration, cancelCurrentWork, canSendNow, notifyNotReadyToSend } from "/app/chat/assets/chat-engine.js";
-import { switchLlamaRuntimeBundle, applyLlamaMemoryLoadingMode, applyLargeModelOverrideFromSettings, allowUnsupportedLargeModelFromWarning, capturePowerCalibrationSample, fitPowerCalibrationModel, resetPowerCalibrationModel, registerModelFromUrl, activateSelectedModel, purgeAllModels, uploadLocalModel, cancelLocalModelUpload, startModelDownload, resetRuntimeHeavy, checkForUpdate, startUpdate, showUpdateReleaseNotes, startUpdateReconnectWatch, handleModelsListClick, handleModelsSelectChange, registerComposerActivity } from "/assets/platform-controls.js";
+import { switchLlamaRuntimeBundle, applyLlamaMemoryLoadingMode, applyLlamaCtxSize, retryLlamaServer, applyLargeModelOverrideFromSettings, allowUnsupportedLargeModelFromWarning, capturePowerCalibrationSample, fitPowerCalibrationModel, resetPowerCalibrationModel, registerModelFromUrl, activateSelectedModel, purgeAllModels, uploadLocalModel, cancelLocalModelUpload, startModelDownload, resetRuntimeHeavy, checkForUpdate, startUpdate, showUpdateReleaseNotes, startUpdateReconnectWatch, handleModelsListClick, handleModelsSelectChange, registerComposerActivity } from "/assets/platform-controls.js";
 import { registerAppSendEnabled } from "/assets/shell.js";
 
     // Shell API references — populated by init()
@@ -300,6 +300,7 @@ export function init(shellApi) {
     });
     document.getElementById("startDownloadBtn").addEventListener("click", startModelDownload);
     document.getElementById("statusResumeDownloadBtn").addEventListener("click", startModelDownload);
+    document.getElementById("statusRestartLlamaBtn").addEventListener("click", retryLlamaServer);
     document.getElementById("registerModelBtn").addEventListener("click", registerModelFromUrl);
     document.getElementById("uploadModelBtn").addEventListener("click", uploadLocalModel);
     document.getElementById("cancelUploadBtn").addEventListener("click", cancelLocalModelUpload);
@@ -307,6 +308,7 @@ export function init(shellApi) {
     document.getElementById("applyLargeModelOverrideBtn").addEventListener("click", applyLargeModelOverrideFromSettings);
     document.getElementById("compatibilityOverrideBtn").addEventListener("click", allowUnsupportedLargeModelFromWarning);
     document.getElementById("applyLlamaMemoryLoadingBtn").addEventListener("click", applyLlamaMemoryLoadingMode);
+    document.getElementById("applyLlamaCtxBtn").addEventListener("click", applyLlamaCtxSize);
     document.getElementById("switchLlamaRuntimeBtn").addEventListener("click", switchLlamaRuntimeBundle);
     document.getElementById("capturePowerCalibrationSampleBtn").addEventListener("click", capturePowerCalibrationSample);
     document.getElementById("fitPowerCalibrationBtn").addEventListener("click", fitPowerCalibrationModel);

@@ -991,3 +991,69 @@ test("large-model warning is hidden when model fits within storage limits", asyn
   await waitForStatusApplied(page);
   await expect(page.locator("#compatibilityWarnings")).toBeHidden();
 });
+
+test("shows llama-server failure reason and retries via the status button", async ({ page }) => {
+  const restartRequests = [];
+  await page.route("**/status", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(makeStatusPayload({
+        state: "BOOTING",
+        llama_server: {
+          healthy: false,
+          running: false,
+          ready: false,
+          failed: true,
+          consecutive_failures: 5,
+          last_error: "GGML_ASSERT: ggml.c:1234: tensor->data",
+        },
+      })),
+    });
+  });
+  await page.route("**/internal/restart-llama", async (route) => {
+    restartRequests.push(true);
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ restarted: true, reason: "no_running_process" }),
+    });
+  });
+
+  await page.goto("/");
+  await waitForStatusApplied(page);
+
+  await expect(page.locator("#statusText")).toContainText("GGML_ASSERT: ggml.c:1234");
+  const retryBtn = page.locator("#statusRestartLlamaBtn");
+  await expect(retryBtn).toBeVisible();
+  await expect(page.locator("#statusResumeDownloadBtn")).toBeHidden();
+
+  await retryBtn.click();
+  await expect.poll(() => restartRequests.length).toBe(1);
+});
+
+test("falls back to an attempt count when llama-server reports no error", async ({ page }) => {
+  await page.route("**/status", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(makeStatusPayload({
+        state: "BOOTING",
+        llama_server: {
+          healthy: false,
+          running: false,
+          ready: false,
+          failed: true,
+          consecutive_failures: 5,
+          last_error: null,
+        },
+      })),
+    });
+  });
+
+  await page.goto("/");
+  await waitForStatusApplied(page);
+
+  await expect(page.locator("#statusText")).toContainText("after 5 attempts");
+  await expect(page.locator("#statusRestartLlamaBtn")).toBeVisible();
+});

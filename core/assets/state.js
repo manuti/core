@@ -18,6 +18,8 @@ export const appState = {
   modelActionInFlight: false,
   llamaRuntimeSwitchInFlight: false,
   llamaMemoryLoadingApplyInFlight: false,
+  llamaRetryInFlight: false,
+  llamaCtxApplyInFlight: false,
   largeModelOverrideApplyInFlight: false,
   powerCalibrationActionInFlight: false,
   uploadRequest: null,
