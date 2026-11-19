@@ -18,6 +18,9 @@ const {
 
 
 test("seed mode defaults to random, toggles deterministic, persists, and controls request payload", async ({ page }) => {
+  // Four save/reload cycles plus a full page reload; under parallel workers the
+  // 15s global budget is not enough on a constrained machine.
+  test.setTimeout(45_000);
   await page.route("**/v1/chat/completions", (route) => fulfillStreamingChat(route));
   await waitUntilReady(page);
 
