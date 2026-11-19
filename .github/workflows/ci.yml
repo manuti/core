@@ -35,7 +35,8 @@ jobs:
         run: python -m pytest -q -n auto tests/unit tests/api
 
   ui-tests:
-    runs-on: ubuntu-latest
+    # ubuntu-latest now resolves to 26.04, where Playwright has no Chromium build.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Checkout
