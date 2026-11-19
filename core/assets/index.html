@@ -209,8 +209,19 @@
                 <div id="modelSettingsStatus" class="runtime-compact">Select a model to edit its chat and vision settings.</div>
               </div>
               <div class="selected-model-header-actions">
+                <button id="autoTuneModelBtn" class="ghost-btn" type="button" data-i18n="st.autoTune">Auto-tune</button>
                 <button id="discardModelSettingsBtn" class="ghost-btn" type="button" hidden data-i18n="editor.discard">Discard changes</button>
                 <button id="saveModelSettingsBtn" class="ghost-btn settings-save-btn" type="button" data-i18n="editor.save">Save model settings</button>
+              </div>
+            </div>
+            <div id="autoTunePanel" class="settings-subpanel full" hidden>
+              <div class="settings-subpanel-header">
+                <h4 id="autoTuneTitle" class="settings-subpanel-title"></h4>
+              </div>
+              <div id="autoTuneChanges" class="runtime-compact"></div>
+              <div class="settings-action-row full">
+                <button id="autoTuneApplyBtn" class="ghost-btn" type="button" data-i18n="st.autoTuneApply">Apply tuning</button>
+                <button id="autoTuneCancelBtn" class="ghost-btn" type="button" data-i18n="st.autoTuneCancel">Cancel</button>
               </div>
             </div>
             <div id="modelCapabilitiesChips" class="settings-chip-row" aria-live="polite"></div>

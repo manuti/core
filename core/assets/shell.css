@@ -1920,6 +1920,10 @@
       gap: 14px;
     }
 
+    .settings-subpanel[hidden] {
+      display: none;
+    }
+
     .settings-subpanel-header {
       display: flex;
       justify-content: space-between;

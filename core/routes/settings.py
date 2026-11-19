@@ -10,11 +10,15 @@ from fastapi.responses import JSONResponse
 
 try:
     from core.deps import get_runtime
+    from core.model_state import ensure_models_state, get_model_by_id, normalize_model_settings
+    from core.model_tuning import suggest_model_tune
     from core.runtime_state import RuntimeConfig
     from core.settings import apply_settings_document_yaml, export_settings_document_yaml
     from core.ui_prefs import read_ui_language, write_ui_language
 except ModuleNotFoundError:
     from deps import get_runtime  # type: ignore[no-redef]
+    from model_state import ensure_models_state, get_model_by_id, normalize_model_settings  # type: ignore[no-redef]
+    from model_tuning import suggest_model_tune  # type: ignore[no-redef]
     from runtime_state import RuntimeConfig  # type: ignore[no-redef]
     from settings import apply_settings_document_yaml, export_settings_document_yaml  # type: ignore[no-redef]
     from ui_prefs import read_ui_language, write_ui_language  # type: ignore[no-redef]
@@ -53,6 +57,34 @@ async def get_settings_document(runtime_cfg: RuntimeConfig = Depends(get_runtime
         content={
             "format": "yaml",
             "document": export_settings_document_yaml(runtime_cfg),
+        },
+    )
+
+
+@router.post("/internal/settings/tune")
+async def suggest_settings_tune_endpoint(
+    request: Request,
+    runtime_cfg: RuntimeConfig = Depends(get_runtime),
+) -> JSONResponse:
+    payload = await request.json()
+    model_id = str(payload.get("model_id") or "").strip()
+    if not model_id:
+        return JSONResponse(status_code=400, content={"reason": "model_id_required"})
+    state = ensure_models_state(runtime_cfg)
+    model = get_model_by_id(state, model_id)
+    if model is None:
+        return JSONResponse(status_code=404, content={"reason": "model_not_found", "model_id": model_id})
+    filename = str(model.get("filename") or "")
+    chat = normalize_model_settings(model.get("settings"), filename=filename).get("chat", {})
+    result = suggest_model_tune(chat, filename=filename)
+    return JSONResponse(
+        status_code=200,
+        content={
+            "model_id": model_id,
+            "filename": filename,
+            "preset": result["preset"],
+            "changes": result["changes"],
+            "settings": result["settings"],
         },
     )
 
