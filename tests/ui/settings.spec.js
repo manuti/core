@@ -1188,3 +1188,72 @@ test("advanced settings show and apply the llama context size", async ({ page })
   expect(posted[0]).toEqual({ ctx_size: "16384" });
 });
 
+
+test("auto-tune shows a diff for the selected model and applies it on confirmation", async ({ page }) => {
+  const tuneCalls = [];
+  const savedPayloads = [];
+  const tunedChat = {
+    temperature: 0.2,
+    top_p: 0.95,
+    top_k: 20,
+    repetition_penalty: 1.05,
+    presence_penalty: 1.0,
+    max_tokens: 16384,
+    stream: true,
+    generation_mode: "random",
+    seed: 42,
+    system_prompt: "",
+    cache_prompt: true,
+  };
+
+  await page.route("**/status", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(makeMultiModelStatusPayload()),
+    });
+  });
+  await page.route("**/internal/settings/tune", async (route) => {
+    const payload = route.request().postDataJSON();
+    tuneCalls.push(payload);
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        model_id: payload.model_id,
+        filename: "Qwen3-Coder-30B-Q3_K_M.gguf",
+        preset: "code",
+        changes: [{ key: "temperature", from: 0.7, to: 0.2 }],
+        settings: tunedChat,
+      }),
+    });
+  });
+  await page.route("**/internal/models/settings", async (route) => {
+    savedPayloads.push(route.request().postDataJSON());
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ updated: true, reason: "updated", model_id: "second-model" }),
+    });
+  });
+
+  await waitUntilReady(page);
+  await openSettingsModal(page);
+  await selectSettingsModel(page, "second-model");
+  await page.locator("#autoTuneModelBtn").click();
+
+  await expect(page.locator("#autoTunePanel")).toBeVisible();
+  await expect(page.locator("#autoTuneTitle")).toHaveText("Code model: deterministic sampling");
+  await expect(page.locator("#autoTuneChanges")).toContainText("temperature: 0.7 → 0.2");
+  await expect(page.locator("#modelsSelect")).toBeDisabled();
+  expect(tuneCalls).toEqual([{ model_id: "second-model" }]);
+
+  await page.locator("#autoTuneApplyBtn").click();
+  await expect.poll(() => savedPayloads.length).toBe(1);
+  expect(savedPayloads[0].model_id).toBe("second-model");
+  expect(savedPayloads[0].settings.chat.temperature).toBe(0.2);
+  expect(savedPayloads[0].settings.vision.enabled).toBe(false);
+  await expect(page.locator("#autoTunePanel")).toBeHidden();
+  await expect(page.locator("#modelsSelect")).toBeEnabled();
+  await expect(page.locator("#modelSettingsStatus")).toContainText(/updated/i);
+});
