@@ -148,8 +148,57 @@ def _discover_local_model_filenames(runtime: RuntimeConfig) -> list[str]:
     return _inferno_discover_local_model_filenames(_models_dir(runtime))
 
 
+# Entries discovered on disk (or uploaded) have no URL to download from again,
+# so a missing file means the user deleted it outside the app.
+_LOCAL_ONLY_SOURCE_TYPES = frozenset({"local_file", "upload"})
+
+
+def _prune_missing_local_models(
+    runtime: RuntimeConfig,
+    state: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Drop registry entries whose model file was deleted outside the app.
+
+    A missing file prunes the entry when it has no URL to download from again
+    (discovered on disk / uploaded) or when it was already marked ``ready``
+    (downloaded before, then removed). Registrations that were never downloaded
+    keep their entry so they stay downloadable/resumable.
+
+    Returns ``None`` when nothing had to be pruned.
+    """
+    models = state.get("models")
+    if not isinstance(models, list):
+        return None
+    kept: list[dict[str, Any]] = []
+    pruned = False
+    for item in models:
+        if not isinstance(item, dict):
+            continue
+        filename = str(item.get("filename") or "")
+        if not filename or _inferno_model_file_present(_models_dir(runtime), filename):
+            kept.append(item)
+            continue
+        source_url = str(item.get("source_url") or "").strip()
+        source_type = str(item.get("source_type") or "").strip().lower()
+        status = str(item.get("status") or "").strip().lower()
+        if (not source_url and source_type in _LOCAL_ONLY_SOURCE_TYPES) or status == "ready":
+            pruned = True
+            continue
+        kept.append(item)
+    if not pruned:
+        return None
+    next_state = dict(state)
+    next_state["models"] = kept
+    return next_state
+
+
 def ensure_models_state(runtime: RuntimeConfig) -> dict[str, Any]:
-    return _inferno_ensure_models_state(_store_config(runtime))
+    config = _store_config(runtime)
+    state = _inferno_ensure_models_state(config)
+    pruned = _prune_missing_local_models(runtime, state)
+    if pruned is None:
+        return state
+    return _inferno_save_models_state(config, pruned)
 
 
 def save_models_state(runtime: RuntimeConfig, state: dict[str, Any]) -> dict[str, Any]:

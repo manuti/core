@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 
 import pytest
 
@@ -14,6 +15,7 @@ from core.model_state import (
     describe_model_storage,
     ensure_models_state,
     resolve_model_runtime_path,
+    save_models_state,
     validate_model_url,
 )
 from core.runtime_state import RuntimeConfig, get_free_storage_bytes, is_likely_too_large_for_storage, read_download_progress
@@ -63,6 +65,7 @@ def test_discoverable_local_model_includes_litertlm():
 def test_normalize_preserves_litertlm_suffix(runtime: RuntimeConfig):
     """_normalize_models_state must not force .gguf on .litertlm files."""
     import json
+    (runtime.base_dir / "models" / "gemma-4-E2B-it.litertlm").write_bytes(b"litert")
     runtime.models_state_path.write_text(json.dumps({
         "version": 1,
         "countdown_enabled": True,
@@ -137,6 +140,104 @@ def test_ensure_models_state_marks_default_downloaded_once_when_file_exists(runt
     state = ensure_models_state(runtime)
 
     assert state["default_model_downloaded_once"] is True
+
+
+def test_ensure_models_state_prunes_local_models_deleted_outside_app(runtime: RuntimeConfig):
+    model_file = runtime.base_dir / "models" / "manual-model.gguf"
+    model_file.write_bytes(b"gguf")
+
+    first = ensure_models_state(runtime)
+    manual = next(model for model in first["models"] if model["filename"] == "manual-model.gguf")
+    assert manual["source_type"] == "local_file"
+
+    model_file.unlink()
+    state = ensure_models_state(runtime)
+
+    assert manual["id"] not in {model["id"] for model in state["models"]}
+    persisted = json.loads(runtime.models_state_path.read_text(encoding="utf-8"))
+    assert manual["id"] not in {model["id"] for model in persisted["models"]}
+
+
+def test_ensure_models_state_keeps_url_models_whose_file_is_missing(runtime: RuntimeConfig):
+    runtime.models_state_path.write_text(
+        json.dumps(
+            {
+                "active_model_id": "default",
+                "default_model_id": "default",
+                "models": [
+                    {
+                        "id": "default",
+                        "filename": MODEL_FILENAME,
+                        "source_url": MODEL_URL,
+                        "source_type": "url",
+                    },
+                    {
+                        "id": "remote",
+                        "filename": "remote-model.gguf",
+                        "source_url": "https://example.com/remote-model.gguf",
+                        "source_type": "url",
+                        "status": "not_downloaded",
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    state = ensure_models_state(runtime)
+
+    remote = next(model for model in state["models"] if model["id"] == "remote")
+    assert remote["status"] == "not_downloaded"
+    assert remote["source_url"] == "https://example.com/remote-model.gguf"
+
+
+def test_ensure_models_state_prunes_previously_downloaded_url_model_removed_externally(
+    runtime: RuntimeConfig,
+):
+    runtime.models_state_path.write_text(
+        json.dumps(
+            {
+                "active_model_id": "default",
+                "default_model_id": "default",
+                "models": [
+                    {
+                        "id": "default",
+                        "filename": MODEL_FILENAME,
+                        "source_url": MODEL_URL,
+                        "source_type": "url",
+                    },
+                    {
+                        "id": "remote",
+                        "filename": "remote-model.gguf",
+                        "source_url": "https://example.com/remote-model.gguf",
+                        "source_type": "url",
+                        "status": "ready",
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    state = ensure_models_state(runtime)
+
+    assert "remote" not in {model["id"] for model in state["models"]}
+
+
+def test_ensure_models_state_repoints_active_model_after_local_model_removed(runtime: RuntimeConfig):
+    model_file = runtime.base_dir / "models" / "manual-model.gguf"
+    model_file.write_bytes(b"gguf")
+    state = ensure_models_state(runtime)
+    manual = next(model for model in state["models"] if model["filename"] == "manual-model.gguf")
+    state["active_model_id"] = manual["id"]
+    save_models_state(runtime, state)
+
+    model_file.unlink()
+    after = ensure_models_state(runtime)
+
+    remaining_ids = {model["id"] for model in after["models"]}
+    assert after["active_model_id"] in remaining_ids
+    assert after["active_model_id"] != manual["id"]
 
 
 @pytest.mark.anyio
