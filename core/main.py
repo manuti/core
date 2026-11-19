@@ -70,6 +70,11 @@ try:
         download_default_projector_for_model,
         _unique_filename,
         _unique_model_id,
+        empty_model_health,
+        read_model_health,
+        record_model_failure,
+        record_model_launch_attempt,
+        record_model_ready,
     )
     from core.update_state import (
         build_update_status,
@@ -199,6 +204,11 @@ except ModuleNotFoundError:
         download_default_projector_for_model,
         _unique_filename,
         _unique_model_id,
+        empty_model_health,
+        read_model_health,
+        record_model_failure,
+        record_model_launch_attempt,
+        record_model_ready,
     )
     from update_state import (  # type: ignore[no-redef]
         build_update_status,
@@ -644,6 +654,7 @@ def _build_status_fs(
     current_download_model_id = models_state.get("current_download_model_id")
     if download_active and (not isinstance(current_download_model_id, str) or not current_download_model_id):
         current_download_model_id = str(models_state.get("default_model_id") or "default")
+    model_health = read_model_health(runtime)
     models_payload: list[dict[str, Any]] = []
     for item in models_state.get("models", []):
         if not isinstance(item, dict):
@@ -682,6 +693,7 @@ def _build_status_fs(
                 "capabilities": build_model_capabilities(filename),
                 "projector": build_model_projector_status(runtime, item),
                 "storage": describe_model_storage(runtime, filename),
+                "health": model_health.get(model_id) or empty_model_health(),
                 **model_progress,
             }
         )
@@ -1703,6 +1715,7 @@ def _safe_upload_filename(name: str) -> str:
 async def orchestrator_loop(app: FastAPI, runtime: RuntimeConfig) -> None:
     while True:
         try:
+            active_model: dict[str, Any] = {}
             download_active = is_download_task_active(app.state.model_download_task)
 
             # Auto-download: skip model-state reads while disk is saturated.
@@ -1797,16 +1810,30 @@ async def orchestrator_loop(app: FastAPI, runtime: RuntimeConfig) -> None:
             app.state._llama_failure_model = tick_result.failure_model_key
             app.state._llama_failure_runtime = tick_result.failure_runtime_key
             app.state.llama_readiness_state = tick_result.readiness
+            tick_model_id = str(active_model.get("id") or "")
+            if (
+                tick_model_id
+                and tick_result.process is not None
+                and tick_result.process is not previous_llama_process
+            ):
+                record_model_launch_attempt(runtime, tick_model_id)
             if (
                 previous_llama_process is not None
                 and previous_llama_process.returncode not in (None, 0)
-                and isinstance(app.state.llama_readiness_state, dict)
             ):
                 # Surface why the last launch died (exit code + llama-server's
                 # own stderr), not just the generic "restart_requested" reason.
-                app.state.llama_readiness_state["last_error"] = _llama_exit_reason(
-                    runtime, int(previous_llama_process.returncode)
+                exit_reason = _llama_exit_reason(runtime, int(previous_llama_process.returncode))
+                if isinstance(app.state.llama_readiness_state, dict):
+                    app.state.llama_readiness_state["last_error"] = exit_reason
+                record_model_failure(
+                    runtime,
+                    tick_model_id,
+                    error=exit_reason,
+                    failed=app.state.llama_consecutive_failures >= LLAMA_MAX_CONSECUTIVE_FAILURES,
                 )
+            if tick_model_id and bool(app.state.llama_readiness_state.get("ready")):
+                record_model_ready(runtime, tick_model_id)
 
             # First-boot auto-update: check once, apply if available, then never again.
             # Gated on llama READY — won't fire until the model is loaded and healthy.

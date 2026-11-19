@@ -804,8 +804,32 @@ def test_status_llama_failure_absent_by_default(client, runtime, monkeypatch):
     assert llama_server["last_error"] is None
 
 
-# -- model_loading field in /status ------------------------------------------------
+# -- per-model load health in /status ----------------------------------------------
 
+
+def test_status_includes_per_model_health(client, runtime, monkeypatch):
+    from core.model_state import record_model_failure
+
+    monkeypatch.setattr("core.main.check_llama_health", _healthy_true)
+    runtime.model_path.write_bytes(b"gguf")
+
+    baseline = client.get("/status").json()["models"]
+    default = next(model for model in baseline if model["id"] == "default")
+    assert default["health"]["attempted"] is False
+    assert default["health"]["ready_once"] is False
+    assert default["health"]["failed"] is False
+    assert default["health"]["last_error"] is None
+
+    record_model_failure(runtime, "default", error="exit -6: GGML_ASSERT", failed=True)
+    models = client.get("/status").json()["models"]
+    default = next(model for model in models if model["id"] == "default")
+    assert default["health"]["attempted"] is True
+    assert default["health"]["failed"] is True
+    assert default["health"]["last_error"] == "exit -6: GGML_ASSERT"
+    assert default["health"]["updated_at_unix"] > 0
+
+
+# -- model_loading field in /status ------------------------------------------------
 
 def test_status_includes_model_loading_inactive_when_ready(client, runtime, monkeypatch):
     monkeypatch.setattr("core.main.check_llama_health", _healthy_true)

@@ -14,6 +14,10 @@ from core.model_state import (
     default_model_for_device,
     describe_model_storage,
     ensure_models_state,
+    read_model_health,
+    record_model_failure,
+    record_model_launch_attempt,
+    record_model_ready,
     resolve_model_runtime_path,
     save_models_state,
     validate_model_url,
@@ -402,3 +406,47 @@ def test_v1_models_returns_openai_compatible_list(client):
         assert "id" in m
         assert m["object"] == "model"
         assert "owned_by" in m
+
+
+# -- per-model load health --------------------------------------------------
+
+
+def test_model_health_expands_attempt_failure_and_ready(runtime: RuntimeConfig):
+    assert read_model_health(runtime) == {}
+
+    record_model_launch_attempt(runtime, "manual-model")
+    attempt = read_model_health(runtime)["manual-model"]
+    assert attempt["attempted"] is True
+    assert attempt["failed"] is False
+    assert attempt["ready_once"] is False
+    assert attempt["last_attempt_at_unix"] > 0
+
+    record_model_failure(runtime, "manual-model", error="exit -6: GGML_ASSERT", failed=False)
+    failing = read_model_health(runtime)["manual-model"]
+    assert failing["failed"] is False
+    assert failing["last_error"] == "exit -6: GGML_ASSERT"
+
+    record_model_failure(runtime, "manual-model", error="exit -6: GGML_ASSERT", failed=True)
+    assert read_model_health(runtime)["manual-model"]["failed"] is True
+
+    # A retry that crashes again before the threshold must not clear the red state.
+    record_model_failure(runtime, "manual-model", error="exit -6: retry", failed=False)
+    assert read_model_health(runtime)["manual-model"]["failed"] is True
+
+    record_model_ready(runtime, "manual-model")
+    ready = read_model_health(runtime)["manual-model"]
+    assert ready["ready_once"] is True
+    assert ready["failed"] is False
+    assert ready["last_error"] is None
+
+
+def test_model_health_ignores_corrupt_file(runtime: RuntimeConfig):
+    path = runtime.base_dir / "state" / "model_health.json"
+    path.write_text("not json", encoding="utf-8")
+    assert read_model_health(runtime) == {}
+
+    path.write_text(json.dumps({"models": {"x": {"attempted": "yes", "last_error": 5}}}), encoding="utf-8")
+    health = read_model_health(runtime)["x"]
+    assert health["attempted"] is True
+    assert health["last_error"] is None
+    assert health["failed"] is False
