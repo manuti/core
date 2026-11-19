@@ -43,14 +43,15 @@ Tests are organized under `tests/`:
 ## Build, Test, and Development Commands
 
 ### Local development
-- `uv sync`: Create/sync local dev environment.
-- `POTATO_ENABLE_ORCHESTRATOR=0 uv run uvicorn core.main:app --host 0.0.0.0 --port 1983`: Run API locally.
+- `make setup`: Create `.venv`, install Python + Node deps, and the Playwright browser.
+- `POTATO_ENABLE_ORCHESTRATOR=0 .venv/bin/python -m uvicorn core.main:app --host 0.0.0.0 --port 1983`: Run API locally.
 
 ### Running tests (required before every push)
-- Python (unit + API): `uv run python -m pytest tests/unit tests/api -q -n auto`
+- Python (unit + API): `.venv/bin/python -m pytest tests/unit tests/api -q -n auto`
 - Playwright (UI): `npx playwright test --reporter=dot --timeout=15000 --workers=75%`
-- Both together: `uv run python -m pytest tests/unit tests/api -q -n auto && npx playwright test --reporter=dot --timeout=15000 --workers=75%`
+- Both together: `.venv/bin/python -m pytest tests/unit tests/api -q -n auto && npx playwright test --reporter=dot --timeout=15000 --workers=75%`
 - First-time Playwright setup: `npx playwright install chromium`
+- If `CI` is exported in your shell, run the UI tests with `env -u CI npx playwright test …` — Playwright's webServer otherwise calls a bare `python`.
 
 ### Pi deployment
 

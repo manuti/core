@@ -64,7 +64,7 @@ When a ticket requires changes in a dependency repo (e.g., `potato-os/inferno`):
 1. Create a branch in the dependency repo, make changes, push, and open a PR.
 2. **Stop and ask the user before merging.** The dependency PR needs the same review as any core PR.
 3. After the user approves and the dependency PR is merged, note the new SHA.
-4. In the core repo branch, bump the pin in `requirements.txt` and run `uv pip install -r requirements.txt`.
+4. In the core repo branch, bump the pin in `requirements.txt` and run `.venv/bin/pip install -r requirements.txt`.
 5. The core PR should reference the dependency PR (e.g., `Depends on potato-os/inferno#1`).
 
 ## GitHub PR Linkage Rules (Required)
@@ -117,10 +117,11 @@ All feature tickets are implemented TDD-first:
 
 ## Local Dev Environment Rule
 
-For all local development work, always use `uv`.
+The repo has no `pyproject.toml`; dependencies are declared in `requirements.txt` and `requirements-dev.txt`, which CI installs with pip.
 
-- Use `uv` to create/sync/run the local development environment instead of ad hoc `.venv/bin/python ...` or direct `pip install ...` commands.
-- Keep local development and test dependencies declared in repo-managed dependency files; do not rely on one-off manual installs outside tracked files.
+- Run `make setup` once: it creates `.venv`, installs `requirements-dev.txt`, `node_modules`, and Chromium.
+- Run Python through `.venv/bin/python`, not a bare `python`.
+- Keep dependencies in the tracked `requirements*.txt` files; do not add a second source such as `pyproject.toml` or one-off manual installs.
 - This rule is for local machine workflows only. Raspberry Pi/runtime packaging may follow different operational constraints and is not changed by this rule.
 
 ## Running Tests Locally (Required Before Push)
@@ -130,7 +131,7 @@ All tests **must** pass locally before pushing. Do not rely on CI to catch failu
 ### Python tests (unit + API)
 
 ```bash
-uv run python -m pytest tests/unit tests/api -q -n auto
+.venv/bin/python -m pytest tests/unit tests/api -q -n auto
 ```
 
 The `-m pytest` flag is required so Python adds the project root to `sys.path`, matching CI behavior. Uses `pytest-xdist` for parallel execution (~10s).
@@ -139,8 +140,12 @@ The `-m pytest` flag is required so Python adds the project root to `sys.path`, 
 
 **Full suite (fast, parallel):**
 ```bash
-npx playwright test --reporter=dot --timeout=15000 --workers=75% 2>&1
+env -u CI npx playwright test --reporter=dot --timeout=15000 --workers=75% 2>&1
 ```
+
+On a machine with 4 cores or fewer, the parallel run can starve page timers (the
+shared test server plus several Chromium workers) and fail unrelated tests with
+timeouts. Use `--workers=1` there; it runs in ~3 minutes and is deterministic.
 
 **Single spec file (for iterating on changes):**
 ```bash
@@ -165,7 +170,7 @@ Requires Chromium installed (`npx playwright install chromium` on first run). Th
 ### Running both before push
 
 ```bash
-uv run python -m pytest tests/unit tests/api -q -n auto && npx playwright test --reporter=dot --timeout=15000 --workers=75% 2>&1
+.venv/bin/python -m pytest tests/unit tests/api -q -n auto && npx playwright test --reporter=dot --timeout=15000 --workers=75% 2>&1
 ```
 
 If either suite fails, fix the issue before pushing. Include summarized test output in the PR description.

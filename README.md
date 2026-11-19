@@ -161,21 +161,31 @@ Everything below is for contributors and developers.
 
 ### Local dev
 
+Requires Python 3.11+ and Node.js (for the UI tests).
+
 ```bash
-uv sync
-POTATO_ENABLE_ORCHESTRATOR=0 uv run uvicorn core.main:app --host 0.0.0.0 --port 1983
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-dev.txt
+npm install
+npx playwright install chromium
+POTATO_ENABLE_ORCHESTRATOR=0 .venv/bin/python -m uvicorn core.main:app --host 0.0.0.0 --port 1983
 ```
 
 Or with Make:
 
 ```bash
+make setup
 make dev
 ```
+
+> If your shell exports `CI` (some agent sandboxes do), run the UI tests as
+> `env -u CI npx playwright test …`: Playwright's webServer then uses
+> `.venv/bin/python` instead of a bare `python`.
 
 ### Tests
 
 ```bash
-uv run python -m pytest tests/unit tests/api -q -n auto
+.venv/bin/python -m pytest tests/unit tests/api -q -n auto
 npx playwright test --reporter=dot --timeout=15000 --workers=75%
 ```
 
