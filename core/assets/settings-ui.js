@@ -520,6 +520,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       const statusEl = document.getElementById("modelSettingsStatus");
       const saveBtn = document.getElementById("saveModelSettingsBtn");
       const discardBtn = document.getElementById("discardModelSettingsBtn");
+      const autoTuneBtn = document.getElementById("autoTuneModelBtn");
       const projectorBtn = document.getElementById("downloadProjectorBtn");
       const projectorStatus = document.getElementById("projectorStatusText");
       const visionSection = document.getElementById("settingsVisionSection");
@@ -533,6 +534,8 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
         if (capabilitiesChips) capabilitiesChips.replaceChildren();
         if (statusEl) statusEl.textContent = t("su.noModelsRegistered");
         if (saveBtn) saveBtn.disabled = true;
+        if (autoTuneBtn) autoTuneBtn.disabled = true;
+        hideAutoTunePanel();
         if (discardBtn) {
           discardBtn.hidden = true;
           discardBtn.disabled = true;
@@ -665,6 +668,9 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       if (saveBtn) {
         saveBtn.disabled = appState.modelSettingsSaveInFlight;
       }
+      if (autoTuneBtn) {
+        autoTuneBtn.disabled = appState.autoTuneInFlight;
+      }
       if (discardBtn) {
         const hasUnsavedChanges = selectedModelHasUnsavedChanges(statusPayload);
         discardBtn.hidden = !hasUnsavedChanges;
@@ -701,6 +707,7 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       select.id = "modelsSelect";
       select.className = "settings-model-select";
       select.setAttribute("aria-label", "Select model to edit");
+      select.disabled = Boolean(appState.autoTuneModelId);
       for (const model of models) {
         const option = document.createElement("option");
         option.value = String(model?.id || "");
@@ -848,6 +855,110 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
       }
     }
 
+    function syncAutoTuneControls() {
+      const tuneBtn = document.getElementById("autoTuneModelBtn");
+      if (tuneBtn) tuneBtn.disabled = appState.autoTuneInFlight;
+      const applyBtn = document.getElementById("autoTuneApplyBtn");
+      if (applyBtn) applyBtn.disabled = appState.modelSettingsSaveInFlight;
+      const cancelBtn = document.getElementById("autoTuneCancelBtn");
+      if (cancelBtn) cancelBtn.disabled = appState.modelSettingsSaveInFlight;
+      const select = document.getElementById("modelsSelect");
+      if (select) select.disabled = Boolean(appState.autoTuneModelId);
+    }
+
+    function hideAutoTunePanel() {
+      const panel = document.getElementById("autoTunePanel");
+      if (panel) panel.hidden = true;
+      appState.autoTuneModelId = "";
+      appState.autoTuneSettings = null;
+      syncAutoTuneControls();
+    }
+
+    function renderAutoTunePanel(preset, changes) {
+      const panel = document.getElementById("autoTunePanel");
+      const title = document.getElementById("autoTuneTitle");
+      const list = document.getElementById("autoTuneChanges");
+      if (!panel || !title || !list) return;
+      title.textContent = t(`tune.${preset}`);
+      list.replaceChildren(...changes.map((change) => {
+        const row = document.createElement("div");
+        row.textContent = `${change.key}: ${change.from} → ${change.to}`;
+        return row;
+      }));
+      panel.hidden = false;
+      syncAutoTuneControls();
+    }
+
+    async function autoTuneSelectedModel() {
+      if (appState.autoTuneInFlight) return;
+      const selectedModel = resolveSelectedSettingsModel(appState.latestStatus);
+      const modelId = String(selectedModel?.id || "");
+      if (!modelId) return;
+      appState.autoTuneInFlight = true;
+      syncAutoTuneControls();
+      const statusEl = document.getElementById("modelSettingsStatus");
+      try {
+        const { res, body } = await postJson("/internal/settings/tune", { model_id: modelId });
+        if (!res.ok) {
+          if (statusEl) statusEl.textContent = t("st.autoTuneErr", { error: tReason(body?.reason) || res.status });
+          return;
+        }
+        const changes = Array.isArray(body?.changes) ? body.changes : [];
+        if (changes.length === 0) {
+          hideAutoTunePanel();
+          if (statusEl) statusEl.textContent = t("st.autoTuneNoChanges");
+          return;
+        }
+        appState.autoTuneModelId = modelId;
+        appState.autoTuneSettings = body?.settings && typeof body.settings === "object" ? body.settings : null;
+        renderAutoTunePanel(String(body?.preset || "instruct"), changes);
+      } catch (err) {
+        if (statusEl) statusEl.textContent = t("st.autoTuneErr", { error: err });
+      } finally {
+        appState.autoTuneInFlight = false;
+        syncAutoTuneControls();
+      }
+    }
+
+    async function applyAutoTuneSettings() {
+      const modelId = String(appState.autoTuneModelId || "");
+      const tunedChat = appState.autoTuneSettings;
+      if (!modelId || !tunedChat || appState.modelSettingsSaveInFlight) return;
+      const selectedModel = resolveSelectedSettingsModel(appState.latestStatus);
+      const vision = selectedModel && String(selectedModel.id || "") === modelId
+        ? (selectedModel.settings?.vision || {})
+        : {};
+      appState.modelSettingsSaveInFlight = true;
+      syncAutoTuneControls();
+      const statusEl = document.getElementById("modelSettingsStatus");
+      if (statusEl) statusEl.textContent = t("su.savingModel");
+      try {
+        const { res, body } = await postJson("/internal/models/settings", {
+          model_id: modelId,
+          settings: { chat: tunedChat, vision },
+        });
+        if (!res.ok) {
+          if (statusEl) statusEl.textContent = t("su.saveErr", { reason: tReason(body?.reason) || res.status });
+          return;
+        }
+        hideAutoTunePanel();
+        clearModelSettingsDraftState();
+        appState.displayedSettingsModelId = "";
+        appState.modelSettingsStatusModelId = modelId;
+        if (statusEl) statusEl.textContent = t("su.modelUpdated");
+        if (_platform.pollStatus) await _platform.pollStatus();
+      } catch (err) {
+        if (statusEl) statusEl.textContent = t("su.saveErr2", { err });
+      } finally {
+        appState.modelSettingsSaveInFlight = false;
+        syncAutoTuneControls();
+      }
+    }
+
+    function cancelAutoTune() {
+      hideAutoTunePanel();
+    }
+
     export async function saveSelectedModelSettings() {
       const selectedModel = resolveSelectedSettingsModel(appState.latestStatus);
       if (!selectedModel || appState.modelSettingsSaveInFlight) return;
@@ -953,6 +1064,9 @@ import { flushPendingNoticeDismissal } from "./platform-notify.js";
         showSettingsWorkspaceTab("yaml");
       });
       document.getElementById("saveModelSettingsBtn").addEventListener("click", saveSelectedModelSettings);
+      document.getElementById("autoTuneModelBtn").addEventListener("click", autoTuneSelectedModel);
+      document.getElementById("autoTuneApplyBtn").addEventListener("click", applyAutoTuneSettings);
+      document.getElementById("autoTuneCancelBtn").addEventListener("click", cancelAutoTune);
       document.getElementById("discardModelSettingsBtn").addEventListener("click", discardSelectedModelSettings);
       document.getElementById("downloadProjectorBtn").addEventListener("click", downloadProjectorForSelectedModel);
       document.getElementById("settingsYamlReloadBtn").addEventListener("click", loadSettingsDocument);
