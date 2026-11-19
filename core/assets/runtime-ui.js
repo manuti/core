@@ -58,6 +58,15 @@ import { formatBytes, formatPercent, formatClockMHz, percentFromRatio, applyRunt
       const throttleDetail = document.getElementById("runtimeDetailThrottleValue");
       const throttleHistoryDetail = document.getElementById("runtimeDetailThrottleHistoryValue");
       const updatedDetail = document.getElementById("runtimeDetailUpdatedValue");
+      const llamaRuntimeDetail = document.getElementById("runtimeDetailLlamaRuntimeValue");
+      if (llamaRuntimeDetail) {
+        const currentRuntime = statusPayload?.llama_runtime?.current || {};
+        const runtimeFamily = String(currentRuntime.family || currentRuntime.source_bundle_name || "").trim();
+        const runtimeCommit = String(currentRuntime.llama_cpp_commit || "").trim().slice(0, 8);
+        llamaRuntimeDetail.textContent = runtimeFamily
+          ? (runtimeCommit ? `${runtimeFamily} · ${runtimeCommit}` : runtimeFamily)
+          : "--";
+      }
 
       if (!available) {
         compact.textContent = t("ru.compactPlaceholder");

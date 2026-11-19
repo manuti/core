@@ -71,6 +71,7 @@ test("renders compact Pi runtime info and toggles details view", async ({ page }
   await expect(page.locator("#runtimeViewToggle")).toHaveText("Hide details");
   await expect(page.locator("#runtimeDetailCpuClockValue")).toHaveText("2400 MHz");
   await expect(page.locator("#runtimeDetails")).toContainText("Soft temp limit occurred");
+  await expect(page.locator("#runtimeDetailLlamaRuntimeValue")).toHaveText("--");
 
   await page.locator("#runtimeViewToggle").dispatchEvent("click");
   await expect(page.locator("#runtimeCompact")).toContainText("CPU 21% @ 2400 MHz");
@@ -1056,4 +1057,45 @@ test("falls back to an attempt count when llama-server reports no error", async 
 
   await expect(page.locator("#statusText")).toContainText("after 5 attempts");
   await expect(page.locator("#statusRestartLlamaBtn")).toBeVisible();
+});
+
+test("platform details show the llama runtime family and short commit", async ({ page }) => {
+  await page.route("**/status", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(makeStatusPayload({
+        llama_runtime: {
+          current: {
+            family: "ik_llama",
+            llama_cpp_commit: "9a0a4628c0ffee",
+            profile: "pi5-opt",
+            has_server_binary: true,
+            runtime_type: "llama_server",
+          },
+          available_runtimes: [{ family: "ik_llama", commit: "9a0a4628c0ffee", is_active: true, compatible: true }],
+          switch: { active: false, target_family: null, error: null },
+          memory_loading: { mode: "auto", label: "Automatic", no_mmap_env: "0" },
+          large_model_override: { enabled: false },
+        },
+      })),
+    });
+  });
+
+  await page.goto("/");
+  await waitForStatusApplied(page);
+
+  await expect(page.locator("#runtimeDetailLlamaRuntimeValue")).toHaveText("ik_llama · 9a0a4628");
+  const platformLabels = await page
+    .locator("#runtimeDetailsPlatformGroup .runtime-detail-row .runtime-detail-label")
+    .allTextContents();
+  expect(platformLabels).toEqual([
+    "Pi model",
+    "OS",
+    "Kernel",
+    "Llama runtime",
+    "Bootloader",
+    "Firmware",
+    "Updated",
+  ]);
 });

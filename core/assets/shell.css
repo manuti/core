@@ -730,6 +730,48 @@
       background: color-mix(in srgb, var(--border) 40%, transparent);
     }
 
+    /* Downloaded but never loaded on this device. */
+    .model-switcher-item.untested .model-switcher-status {
+      color: #b45309;
+      background: color-mix(in srgb, #f59e0b 18%, var(--panel));
+    }
+
+    /* Deploy attempted and the model never became ready. */
+    .model-switcher-item.failed .model-switcher-status {
+      color: #b91c1c;
+      background: color-mix(in srgb, #ef4444 18%, var(--panel));
+    }
+
+    .model-switcher-item.untested .model-switcher-name {
+      color: #b45309;
+    }
+
+    .model-switcher-item.failed .model-switcher-name {
+      color: #b91c1c;
+    }
+
+    :root[data-theme="dark"] .model-switcher-item.untested .model-switcher-name,
+    :root[data-theme="dark"] .model-switcher-item.untested .model-switcher-status {
+      color: #fbbf24;
+    }
+
+    :root[data-theme="dark"] .model-switcher-item.failed .model-switcher-name,
+    :root[data-theme="dark"] .model-switcher-item.failed .model-switcher-status {
+      color: #f87171;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .model-switcher-item.untested .model-switcher-name,
+      :root:not([data-theme="light"]) .model-switcher-item.untested .model-switcher-status {
+        color: #fbbf24;
+      }
+
+      :root:not([data-theme="light"]) .model-switcher-item.failed .model-switcher-name,
+      :root:not([data-theme="light"]) .model-switcher-item.failed .model-switcher-status {
+        color: #f87171;
+      }
+    }
+
     .visually-hidden-file {
       display: none;
     }

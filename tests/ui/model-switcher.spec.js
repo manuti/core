@@ -213,3 +213,55 @@ test("quick model switcher refreshes when status updates while open", async ({ p
   await expect(page.locator(".model-switcher-item")).toHaveCount(2, { timeout: 5000 });
 });
 
+test("quick model switcher marks untested models orange, failing models red, and shows GB size", async ({ page }) => {
+  const status = makeStatusPayload({
+    models: [
+      {
+        id: "tested",
+        filename: "Qwen3.5-2B-Q4_K_M.gguf",
+        status: "ready",
+        is_active: true,
+        storage: { size_bytes: 2_497_280_960 },
+        health: { attempted: true, ready_once: true, failed: false, last_error: null },
+      },
+      {
+        id: "untested",
+        filename: "gemma-4-12b-it-UD-Q2_K_XL.gguf",
+        status: "ready",
+        is_active: false,
+        storage: { size_bytes: 4_661_418_400 },
+        health: { attempted: false, ready_once: false, failed: false, last_error: null },
+      },
+      {
+        id: "broken",
+        filename: "Nemotron-3.5-Bolt-E4B-Q4_K_M.gguf",
+        status: "ready",
+        is_active: false,
+        storage: { size_bytes: 6_180_446_208 },
+        health: { attempted: true, ready_once: false, failed: true, last_error: "exit -6: GGML_ASSERT" },
+      },
+    ],
+  });
+  await page.route("**/status", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(status) }));
+  await page.goto("/");
+  await expect(page.locator("#statusText")).toContainText("State: READY");
+
+  await page.locator("#statusBadge").click();
+  await expect(page.locator("#modelSwitcher")).toBeVisible();
+
+  const tested = page.locator('.model-switcher-item[data-model-id="tested"]');
+  await expect(tested).not.toHaveClass(/untested/);
+  await expect(tested).not.toHaveClass(/failed/);
+  await expect(tested).toContainText("(2.50 GB)");
+
+  const untested = page.locator('.model-switcher-item[data-model-id="untested"]');
+  await expect(untested).toHaveClass(/untested/);
+  await expect(untested.locator(".model-switcher-status")).toHaveText("Untested");
+  await expect(untested).toContainText("(4.66 GB)");
+
+  const broken = page.locator('.model-switcher-item[data-model-id="broken"]');
+  await expect(broken).toHaveClass(/failed/);
+  await expect(broken.locator(".model-switcher-status")).toHaveText("Fails");
+  await expect(broken).toHaveAttribute("title", /GGML_ASSERT/);
+  await expect(broken).toContainText("(6.18 GB)");
+});
